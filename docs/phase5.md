@@ -1,9 +1,3 @@
-This is the comprehensive design for **Phase 5: Frontend (The Studio)**.
-
-This phase moves beyond simple "chat" interfaces. We are building a **Pro-Grade Creative IDE** (Integrated Development Environment) that gives users the power of a Director, Animator, and Critic in a single interface.
-
------
-
 # Phase 5: Frontend (The Studio)
 
 ## 1\. Core Philosophy: "Glass Box" AI
@@ -115,7 +109,3 @@ To ensure we are building a *usable* pro tool, we will run an A/B test focusing 
   * [ ] **Instrument Telemetry:** Add PostHog or Mixpanel to track "Edit Code" vs "Re-Prompt" actions for the UX experiment.
 
 This frontend design turns a backend logic puzzle into a tangible, professional creative product. It empowers users by treating them as intelligent collaborators ("Directors") rather than just consumers.
-
-A relevant video on building advanced code-based editors in React:
-[Building a Code Editor with React & Monaco](https://www.google.com/search?q=https://www.youtube.com/watch%3Fv%3Ddi5H3vX_d34)
-*This video covers the intricacies of embedding Monaco (the VS Code editor) into a React app, which is essential for the "Animator" view of your Studio.*
