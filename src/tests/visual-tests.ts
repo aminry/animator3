@@ -13,6 +13,7 @@ import { ShapeBuilder } from '../shapes';
 import { ShapeItem } from '../types';
 import { Property } from '../Property';
 import { generateKeyframes } from '../physics';
+import { Stage } from '../motionscript';
 
 // Create output and golden directories
 const OUTPUT_DIR = path.join(process.cwd(), 'output');
@@ -712,6 +713,61 @@ function test22_EasingCurves(): void {
 }
 
 /**
+ * Test 23: MotionScript Staggered Text
+ * Verifies: High-level Stage/Motion API (addText, addShape), element.animate with delay & spring,
+ *           and group.stagger for staggered text reveal.
+ */
+function test23_MotionScriptStaggeredText(): void {
+  const duration = 4;
+  const fps = 30;
+  const stage = new Stage(800, 600, duration, fps);
+
+  // Create staggered text elements
+  const lines = ['MotionScript', 'High-Level', 'API'];
+  const elements = lines.map((text, index) => {
+    const element = stage.addText(text, {
+      fontSize: 40,
+      fontFamily: 'Arial',
+      color: [0, 0, 0],
+      justification: 2
+    });
+
+    const baseY = 220 + index * 80;
+    element.getLayer().setPosition(400, baseY);
+    return element;
+  });
+
+  // Staggered opacity reveal using the high-level API
+  const group = stage.createGroup();
+  group.stagger(
+    elements,
+    {
+      props: {
+        opacity: { from: 0, to: 100 }
+      },
+      delay: 0
+    },
+    { delay: 0.3 }
+  );
+
+  // Separate shape using spring physics via MotionScript
+  const shapeElement = stage.addShape('circle', {
+    fillColor: [0.2, 0.8, 1],
+    radius: 40
+  });
+  shapeElement.getLayer().setPosition(150, 450);
+  shapeElement.animate({
+    props: {
+      position: { from: [150, 600], to: [150, 450] }
+    },
+    spring: { stiffness: 200, damping: 20 },
+    delay: 0
+  });
+
+  saveAnimation(stage.getAnimation(), 'test23-motionscript-staggered-text.json');
+}
+
+/**
  * Run all tests
  */
 function runAllTests(): void {
@@ -742,6 +798,7 @@ function runAllTests(): void {
     test20_ComprehensiveTest();
     test21_SpringPhysicsCircle();
     test22_EasingCurves();
+    test23_MotionScriptStaggeredText();
 
     console.log('\n✅ All tests completed successfully!');
     console.log(`\n📁 Generated ${fs.readdirSync(OUTPUT_DIR).length} Lottie JSON files in: ${OUTPUT_DIR}`);

@@ -22,6 +22,9 @@ export {
   LottieEasing
 } from './easing';
 
+// MotionScript high-level API (Task 1.3)
+export { Stage, Motion } from './motionscript';
+
 // Type definitions
 export * from './types';
 

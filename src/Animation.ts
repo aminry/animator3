@@ -64,6 +64,10 @@ export class Animation {
     return this.outPoint / this.frameRate;
   }
 
+  getFrameRate(): number {
+    return this.frameRate;
+  }
+
   /**
    * Set the canvas size
    */
@@ -71,6 +75,14 @@ export class Animation {
     this.width = width;
     this.height = height;
     return this;
+  }
+
+  getWidth(): number {
+    return this.width;
+  }
+
+  getHeight(): number {
+    return this.height;
   }
 
   /**
