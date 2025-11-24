@@ -14,6 +14,8 @@ export { DirectorAgent, DIRECTOR_MODEL, DIRECTOR_SYSTEM_PROMPT } from './directo
 export type { Storyboard, LLMClient, LLMClientGenerateOptions } from './directorAgent';
 export { AnimatorAgent, ANIMATOR_MODEL, ANIMATOR_SYSTEM_PROMPT_BASE } from './animatorAgent';
 export type { AnimatorAgentGenerateOptions } from './animatorAgent';
+export { CriticAgent, CRITIC_MODEL, CRITIC_SYSTEM_PROMPT } from './criticAgent';
+export type { CriticAgentEvaluateOptions, CriticResult, CriticIssue } from './criticAgent';
 
 // Physics & easing utilities (Task 1.2)
 export { generateKeyframes, SpringPhysicsConfig, TimeValuePair } from './physics';

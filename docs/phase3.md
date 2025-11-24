@@ -1,7 +1,3 @@
-This is a deep-dive technical specification for **Phase 3: The Intelligence Layer**. It provides the exact prompt engineering, context management, and verification strategies required to build the Director, Animator, and Critic agents on Groq.
-
------
-
 ### **Phase 3: Intelligence Layer Specification**
 
 **Goal:** Create a deterministic, self-correcting agent loop where creativity (Director) is separated from execution (Animator) and verification (Critic).
