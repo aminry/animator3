@@ -18,7 +18,8 @@
     "test:renderer-e2e": "tsc && node dist/tests/render-e2e.js",
     "test:director-e2e": "tsc && node dist/tests/director-e2e.js",
     "test:animator-e2e": "tsc && node dist/tests/animator-e2e.js",
-    "test:critic-e2e": "tsc && node dist/tests/critic-e2e.js"
+    "test:critic-e2e": "tsc && node dist/tests/critic-e2e.js",
+    "test:orchestrator-e2e": "tsc && node dist/tests/orchestrator-e2e.js"
   },
   "keywords": ["lottie", "animation", "motion", "sdk"],
   "author": "",
@@ -28,6 +29,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@langchain/langgraph": "^1.0.2",
     "vm2": "^3.10.0",
     "puppeteer": "^24.31.0"
   }
