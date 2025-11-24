@@ -74,5 +74,5 @@ export function createStudioGraph(nodes: StudioNodes): StudioGraph {
   });
 
   const graph = workflow.compile();
-  return graph as StudioGraph;
+  return graph as unknown as StudioGraph;
 }

@@ -20,7 +20,9 @@
     "test:animator-e2e": "tsc && node dist/tests/animator-e2e.js",
     "test:critic-e2e": "tsc && node dist/tests/critic-e2e.js",
     "test:orchestrator-e2e": "tsc && node dist/tests/orchestrator-e2e.js",
-    "test:asset-processor-e2e": "tsc && node dist/tests/assetProcessor-e2e.js"
+    "test:asset-processor-e2e": "tsc && node dist/tests/assetProcessor-e2e.js",
+    "start:sandbox": "node dist/sandboxServer.js",
+    "start:renderer": "node dist/rendererServer.js"
   },
   "keywords": [
     "lottie",
