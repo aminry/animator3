@@ -38,6 +38,14 @@ class MockLLMClient implements LLMClient {
       throw new Error('Animator agent did not inject the SDK interface definition (.d.ts) into the system prompt');
     }
 
+    if (!options.systemPrompt.includes('EXAMPLE 1: Simple title spring-in')) {
+      throw new Error('Animator agent system prompt must include few-shot examples');
+    }
+
+    if (!options.stopSequences || options.stopSequences.length !== 2 || options.stopSequences[0] !== '```' || options.stopSequences[1] !== 'return stage') {
+      throw new Error('Animator agent must configure stop sequences for fenced code and "return stage"');
+    }
+
     if (options.jsonMode !== false) {
       throw new Error('Animator agent must request non-JSON (code) mode from the LLM client');
     }

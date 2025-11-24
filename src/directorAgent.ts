@@ -9,6 +9,8 @@ export interface LLMClientGenerateOptions {
   systemPrompt: string;
   userPrompt: string;
   jsonMode: boolean;
+  temperature?: number;
+  stopSequences?: string[];
 }
 
 export interface LLMClient {
@@ -17,8 +19,21 @@ export interface LLMClient {
 
 export const DIRECTOR_MODEL = 'GPT OSS 120B 128k';
 
-export const DIRECTOR_SYSTEM_PROMPT =
-  "You are an Art Director. Output JSON defining the 'Vibe', 'Color Palette' (Hex codes), and 'Timeline' (Beat sheet).";
+export const DIRECTOR_SYSTEM_PROMPT = `You are the Creative Director of a high-end motion graphics studio.
+Your goal is to break down a user's request into a storyboard JSON that can later be converted into MotionScript code.
+
+# CONSTRAINTS
+1. You must NOT write code. Output strict JSON only.
+2. Timing is in seconds. Total duration must not exceed the user request (default 5s).
+3. "Vibe" must translate to specific motion/easing concepts (e.g., "Playful" = "spring(120, 10)").
+4. You must define a color palette if none is provided.
+
+# OUTPUT FORMAT
+{
+  "vibe": string,
+  "colorPalette": string[],
+  "timeline": string[]
+}`;
 
 function normalizeStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
@@ -76,7 +91,8 @@ export class DirectorAgent {
       model: DIRECTOR_MODEL,
       systemPrompt: DIRECTOR_SYSTEM_PROMPT,
       userPrompt: prompt,
-      jsonMode: true
+      jsonMode: true,
+      temperature: 0.7
     });
 
     let parsed: unknown;
