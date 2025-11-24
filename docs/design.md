@@ -98,7 +98,7 @@ This is a comprehensive technical roadmap designed to be fed into an **AI Coder*
 ## Phase 4: Orchestration (The Glue)
 
 ### Task 4.1: LangGraph State Machine
-* **Description:** Connect the agents in a loop using Python (FastAPI).
+* **Description:** Connect the agents in a loop.
 * **Technical Details:**
     * **State Object:** `{ prompt, storyboard, code, lottie_json, error_logs, attempt_count }`.
     * **Flow:**

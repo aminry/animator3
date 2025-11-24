@@ -1,192 +1,215 @@
-# Phase 4: Orchestration (The Glue)
+# Phase 4: Orchestration (The Glue) — Node.js Edition
 
-This phase binds the "Brain" (Agents) to the "Body" (Sandbox/Renderer). We will use **LangGraph** (a library by LangChain) because it treats the agent workflow as a **cyclic graph** rather than a linear chain. This allows for loops (e.g., "The Critic rejected the animation, send it back to the Animator").
+This phase uses **LangGraph.js** to manage the circular workflow between the Director, Animator, and Critic agents. We leverage Node.js's native strength in handling JSON-heavy animation logic and headless browser rendering.
 
-### 4.1 The Architecture: State Machine (LangGraph)
+### 4.1 The Architecture: State Machine (LangGraph.js)
 
-The orchestration logic runs on a Python server (FastAPI). It maintains a `State` object that passes between agents.
+Instead of a linear chain, we define a cyclic graph where the state acts as a shared "blackboard" for all agents.
 
-**The State Object:**
+**The State Definition (TypeScript):**
 
-```python
-from typing import TypedDict, List, Optional
+```typescript
+import { Annotation, MessagesAnnotation } from "@langchain/langgraph";
 
-class AnimationState(TypedDict):
-    # Inputs
-    prompt: str
-    assets: List[str] # S3 paths
-    
-    # Internal Artifacts
-    storyboard: Optional[dict]  # Output from Director
-    code: Optional[str]         # Output from Animator
-    lottie_json: Optional[dict] # Output from Sandbox
-    
-    # Feedback Loop
-    error_logs: List[str]       # Compiler errors
-    critique: Optional[str]     # Critic's feedback
-    attempt_count: int          # To prevent infinite loops
-    
-    # Final Output
-    status: str # "processing", "complete", "failed"
+// Define the Shared State Schema
+export const StudioState = Annotation.Root({
+  // Inputs
+  prompt: Annotation<string>(),
+  assets: Annotation<string[]>(), // S3 Paths
+  
+  // Artifacts (The "Work in Progress")
+  storyboard: Annotation<any>(),  // JSON from Director
+  code: Annotation<string>(),     // TypeScript from Animator
+  lottieJson: Annotation<any>(),  // Compiled Output
+  
+  // Feedback & Control Flow
+  errorLogs: Annotation<string[]>({
+    reducer: (curr, next) => curr.concat(next), // Append errors
+    default: () => [],
+  }),
+  critique: Annotation<string>(), // Visual feedback
+  attemptCount: Annotation<number>({
+    reducer: (curr, next) => next, // Overwrite
+    default: () => 0,
+  }),
+});
 ```
 
-**The Graph Flow:**
+**The Graph Flow (LangGraph.js):**
 
-1.  **Node: Director** (GPT-OSS 120B) → Generates `storyboard`.
-2.  **Node: Animator** (GPT-OSS 120B) → Generates `code` based on storyboard + assets.
-3.  **Node: Sandbox** (Code Execution) → Runs `code` → returns `lottie_json` or `error`.
-      * *Conditional Edge:* If `error` exists → Loop back to **Animator** (with error context).
-4.  **Node: Renderer** (Headless) → Renders PNG frames.
-5.  **Node: Critic** (Llama-4-Scout) → Reviews frames.
-      * *Conditional Edge:* If "Reject" → Loop back to **Animator** (with critique).
-      * *Conditional Edge:* If "Approve" → Go to **End**.
+```typescript
+import { StateGraph, END } from "@langchain/langgraph";
+import { directorNode, animatorNode, sandboxNode, rendererNode, criticNode } from "./nodes";
 
-### 4.2 Implementation: The Asset Processor (SVG Pipeline)
+// 1. Initialize Graph
+const workflow = new StateGraph(StudioState)
+  .addNode("director", directorNode)
+  .addNode("animator", animatorNode)
+  .addNode("sandbox", sandboxNode)   // Compiles TS -> Lottie
+  .addNode("renderer", rendererNode) // Lottie -> PNG
+  .addNode("critic", criticNode);    // Vision Model Review
 
-Before the agents start, we must process user assets. Raw SVGs are often too messy for an LLM to read directly.
+// 2. Define Edges (The Logic)
+workflow.addEdge("__start__", "director");
+workflow.addEdge("director", "animator");
+workflow.addEdge("animator", "sandbox");
 
-**Goal:** Turn a user's `logo.svg` into something the Animator Agent can manipulate.
+// 3. Conditional Edge: Compilation Check
+workflow.addConditionalEdges("sandbox", (state) => {
+  // If sandbox returned errors, send back to Animator to fix syntax
+  if (state.errorLogs.length > 0 && state.attemptCount < 5) {
+    return "animator";
+  }
+  return "renderer";
+});
+
+// 4. Conditional Edge: Visual Quality Check
+workflow.addConditionalEdges("critic", (state) => {
+  // If critic rejects visual quality, send back to Animator to fix styling
+  if (state.critique.includes("REJECT") && state.attemptCount < 5) {
+    return "animator";
+  }
+  return END;
+});
+
+export const graph = workflow.compile();
+```
+
+### 4.2 Implementation: The Asset Processor (Node.js)
+
+We replace Python's `scour` with the Node ecosystem standard: **SVGO** (optimization) and **Cheerio** (parsing).
 
 **Pipeline Steps:**
 
-1.  **Sanitization:** Use `scour` (Python library) to remove empty tags, metadata, and scripts.
-2.  **Simplification:** Use `svgelements` to parse paths.
-3.  **Semantic Labeling (AI):** Use **GPT-OSS 20B** to identify groups.
+1.  **Sanitize:** Use `svgo` to strip scripts and unsafe attributes.
+2.  **Parse:** Use `cheerio` to traverse the DOM server-side.
+3.  **Tag:** Use `GPT-OSS 20B` to semantically label the groups.
 
-**Code Logic (Python):**
+**Code Logic:**
 
-```python
-import svgelements
+```typescript
+import { optimize } from "svgo";
+import * as cheerio from "cheerio";
 
-def process_svg_for_llm(svg_path):
-    # 1. Load SVG
-    svg = svgelements.SVG.parse(svg_path)
-    
-    # 2. Extract Hierarchy (Simplified for LLM context)
-    structure = []
-    for element in svg.elements():
-        if isinstance(element, svgelements.Group):
-            # We want the ID so the LLM can target it in code
-            # e.g. stage.select('#wheel').animate(...)
-            structure.append(f"Group ID: {element.id}, Children: {len(element)}")
-            
-    # 3. Call GPT-OSS 20B (The "Tagger")
-    # Prompt: "Given this SVG structure, identify the ID for the 'background' 
-    # and the 'icon'. Return JSON: { 'bg_id': '...', 'icon_id': '...' }"
-    return call_groq_20b(prompt=str(structure))
+async function processSvgForLlm(svgString: string) {
+  // 1. Sanitize (Security)
+  const safeSvg = optimize(svgString, {
+    plugins: ['removeScriptElement', 'removeOnEventHandlers']
+  }).data;
+
+  // 2. Extract Hierarchy
+  const $ = cheerio.load(safeSvg, { xmlMode: true });
+  const structure: string[] = [];
+  
+  $('g').each((i, el) => {
+    const id = $(el).attr('id');
+    const childCount = $(el).children().length;
+    if (id) structure.push(`Group ID: "${id}", Children: ${childCount}`);
+  });
+
+  // 3. Call Groq 20B
+  // "Given this structure, which ID is the 'wheel'?"
+  return await groq.extractSemanticTags(structure); 
+}
 ```
 
 -----
 
-# Verification & Testing Strategy
+# Verification & Testing Strategy (Jest + Puppeteer)
 
-You asked how to **programmatically verify** the system works without looking at every file. We will implement a 3-Tier Testing Strategy.
+We implement a 3-Tier Testing Strategy using **Jest** as the test runner.
 
-### Tier 1: The "Lottie Inspector" (Automated Quality Check)
+### Tier 1: The "Lottie Inspector" (Structure Test)
 
-We will write a Python script that loads the generated Lottie JSON and asserts specific properties. This runs automatically after every generation.
+A pure logic test that validates the JSON structure without rendering.
 
-**What it checks:**
+**`tests/inspector.test.ts`**
 
-1.  **Validity:** Is it valid JSON? Does it adhere to the Lottie Schema?
-2.  **Activity:** does the animation actually *move*? (Checking keyframes).
-3.  **Structure:** Are there non-empty layers?
+```typescript
+import { validateLottie } from "../src/inspector";
 
-**The Inspector Script (`verify_lottie.py`):**
-
-```python
-import json
-import sys
-
-def verify_lottie(file_path):
-    with open(file_path, 'r') as f:
-        data = json.load(f)
-
-    # Check 1: Schema Basics
-    required_keys = ['v', 'fr', 'ip', 'op', 'layers']
-    if not all(key in data for key in required_keys):
-        return False, "Missing required Lottie root keys"
-
-    # Check 2: Duration sanity
-    duration_frames = data['op'] - data['ip']
-    if duration_frames <= 0:
-        return False, "Animation has 0 duration"
-
-    # Check 3: "Is it moving?" (Keyframe Analysis)
-    # Scan layers for animated properties (properties with 'k' as a list of keyframes)
-    has_motion = False
-    for layer in data['layers']:
-        # Transform properties (Anchor, Position, Scale, Rotation, Opacity)
-        ks = layer.get('ks', {})
-        for prop in ['a', 'p', 's', 'r', 'o']:
-            if prop in ks:
-                val = ks[prop]
-                # In Lottie, if 'a' is 1, it's animated (has keyframes)
-                if val.get('a') == 1: 
-                    has_motion = True
-                    break
-    
-    if not has_motion:
-        return False, "Animation is static (no keyframes found)"
-
-    return True, "Passed"
-
-# Usage in pipeline
-success, message = verify_lottie("output.json")
-if not success:
-    raise Exception(f"Validation Failed: {message}")
+test('Lottie Inspector rejects static animation', () => {
+  const badJson = {
+    v: "5.5.7",
+    op: 60,
+    ip: 0,
+    layers: [{ ks: { a: 0, p: [0,0,0] } }] // No keyframes (a=0)
+  };
+  
+  const result = validateLottie(badJson);
+  expect(result.isValid).toBe(false);
+  expect(result.error).toContain("Animation is static");
+});
 ```
 
 ### Tier 2: Visual Regression (The "Eyes")
 
-For E2E testing, we need to ensure the rendering pipeline works.
+This is where Node.js shines. We use **Puppeteer** to verify the animation actually draws pixels.
 
-  * **Tools:** `lottie-web` (running in a headless browser like Puppeteer) or `skia-canvas`.
-  * **Test Logic:**
-    1.  Render Frame 0 (`start.png`).
-    2.  Render Frame 50 (`mid.png`).
-    3.  **Assertion:** `assert_images_not_equal(start.png, mid.png)`
-    4.  *Why?* If the images are identical, the animation is broken/frozen.
+**`tests/visual.test.ts`**
 
-### Tier 3: End-to-End (E2E) Pipeline Test
+```typescript
+import puppeteer from 'puppeteer';
 
-To test the *Orchestrator* (LangGraph) deterministically, we must **Mock the LLMs**. We don't want to pay for tokens or deal with random AI variance during standard CI/CD runs.
+test('Animation actually moves', async () => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  
+  // Inject lottie-web
+  await page.addScriptTag({ path: require.resolve('lottie-web') });
+  
+  const getPixelHash = async (frame: number) => {
+    return page.evaluate((f) => {
+      /* logic to seek to frame and return canvas base64 */
+    }, frame);
+  };
 
-**The Test Plan:**
-
-1.  **Mock Director:** Returns a fixed Storyboard JSON (`{ "action": "fade_in" }`).
-2.  **Mock Animator:** Returns a fixed string of TypeScript code that we *know* works.
-3.  **Real Sandbox:** Compiles that code.
-4.  **Real Inspector:** Verifies the output.
-
-**Example `pytest` Test:**
-
-```python
-import pytest
-from orchestration import run_pipeline
-
-def test_full_pipeline_success(mocker):
-    # 1. Mock the LLM calls to return predictable responses
-    mocker.patch('agents.director.generate', return_value={"style": "bounce"})
-    mocker.patch('agents.animator.generate', return_value="stage.addText('Hello');")
-    
-    # 2. Run the actual pipeline (LangGraph)
-    result = run_pipeline(prompt="Test Prompt")
-    
-    # 3. Assertions
-    assert result['status'] == 'complete'
-    assert result['lottie_json'] is not None
-    
-    # 4. Run the Tier 1 Inspector on the result
-    success, msg = verify_lottie_data(result['lottie_json'])
-    assert success is True
+  const frame0 = await getPixelHash(0);
+  const frame50 = await getPixelHash(50);
+  
+  // If frame 0 and frame 50 are identical, animation is broken
+  expect(frame0).not.toEqual(frame50);
+  
+  await browser.close();
+});
 ```
 
-### Summary of Tasks for "Phase 4"
+### Tier 3: End-to-End (E2E) Pipeline Mocking
 
-| Task | Component | Description | Verification Method |
+We test the `LangGraph` flow by mocking the Groq API calls to avoid token costs and nondeterminism.
+
+**`tests/e2e.test.ts`**
+
+```typescript
+import { graph } from "../src/graph";
+import { jest } from '@jest/globals';
+
+// Mock the Agent Nodes
+jest.mock('../src/nodes/director', () => ({
+  directorNode: async (state) => ({ storyboard: { style: "bounce" } })
+}));
+
+jest.mock('../src/nodes/animator', () => ({
+  animatorNode: async (state) => ({ code: "stage.addText('Hello')" })
+}));
+
+test('Full Graph execution succeeds', async () => {
+  const result = await graph.invoke({
+    prompt: "Make a bouncing logo",
+    assets: []
+  });
+
+  expect(result.status).toBe("complete");
+  expect(result.lottieJson).toBeDefined();
+  expect(result.attemptCount).toBeLessThan(2); // Should succeed on first try
+});
+```
+
+### Summary of Tasks for "Phase 4" (Node.js)
+
+| Task | Component | Implementation Detail | Verification Method |
 | :--- | :--- | :--- | :--- |
-| **4.1** | **LangGraph Setup** | Define the State Graph, Nodes (Director/Animator/Critic), and Conditional Edges (Loops). | Run a flow that forces a loop (simulate an error) and ensure it retries 3 times before failing. |
-| **4.2** | **Asset Pipeline** | Build `process_svg` function using `scour` and `gpt-oss-20b` prompt. | Upload a complex SVG; assert the system extracts the correct Group IDs. |
-| **4.3** | **Lottie Inspector** | Implement `verify_lottie.py` (Tier 1). | Run against a known "broken" JSON (0 duration) and ensure it returns False. |
-| **4.4** | **Sandbox Runner** | Create the Docker/VM environment to execute the LLM's TypeScript. | Send a script `while(true)` and ensure the sandbox kills it after 500ms (Security test). |
+| **4.1** | **LangGraph Setup** | `StateGraph` with `StudioState` Annotation. Defined in `src/orchestrator.ts`. | Run E2E test with mocks. Ensure graph loops back on "error" state. |
+| **4.2** | **Asset Pipeline** | `svgo` for cleaning, `cheerio` for parsing. | Unit test: Upload an SVG with `<script>` tags, assert they are removed. |
+| **4.3** | **Visual Critic** | `puppeteer` + `lottie-web`. Renders frames to Buffers for the Llama model. | `tests/visual.test.ts`: Render a known Lottie file and check output PNG size \> 0. |
+| **4.4** | **Sandbox** | `vm2` or `isolated-vm`. Runs compiled TS code in isolation. | Pass `while(true)` script; assert it throws a generic Timeout Error (not server crash). |
