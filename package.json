@@ -1,0 +1,26 @@
+{
+  "name": "@motiongen/sdk",
+  "version": "0.1.0",
+  "description": "MotionGen V3 - Lottie JSON Builder SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node dist/tests/visual-tests.js",
+    "test:update": "UPDATE_GOLDEN=1 node dist/tests/visual-tests.js",
+    "test:build": "tsc && node dist/tests/visual-tests.js",
+    "test:build:update": "UPDATE_GOLDEN=1 tsc && node dist/tests/visual-tests.js",
+    "example": "tsc && node dist/example.js",
+    "serve": "node serve.js",
+    "view": "node serve.js",
+    "dev": "tsc --watch"
+  },
+  "keywords": ["lottie", "animation", "motion", "sdk"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottie JSON Builder - Visual Test Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .test-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .test-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.2);
+        }
+
+        .test-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            font-weight: 600;
+        }
+
+        .test-name {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .test-description {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .animation-container {
+            width: 100%;
+            height: 300px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .animation-wrapper {
+            width: 100%;
+            height: 100%;
+        }
+
+        .test-controls {
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            background: #fafafa;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .status {
+            padding: 10px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .error {
+            color: #e74c3c;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .global-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .info-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Lottie JSON Builder</h1>
+            <p class="subtitle">Visual Test Suite - Task 1.1 Verification</p>
+        </header>
+
+        <div class="controls">
+            <div class="global-controls">
+                <button onclick="playAll()">▶️ Play All</button>
+                <button onclick="pauseAll()">⏸️ Pause All</button>
+                <button onclick="stopAll()">⏹️ Stop All</button>
+                <button onclick="reloadAll()">🔄 Reload All</button>
+            </div>
+        </div>
+
+        <div id="test-grid" class="test-grid">
+            <div class="loading">Loading tests...</div>
+        </div>
+    </div>
+
+    <script>
+        const tests = [
+            { file: 'test1-red-rectangle.json', name: 'Simple Red Rectangle', description: 'Basic shape creation, solid fill, static properties' },
+            { file: 'test2-animated-circle.json', name: 'Animated Circle', description: 'Circle shape with position animation' },
+            { file: 'test3-scale-animation.json', name: 'Scale Animation', description: 'Scale property animation' },
+            { file: 'test4-rotation-animation.json', name: 'Rotation Animation', description: 'Rotation property animation' },
+            { file: 'test5-opacity-animation.json', name: 'Opacity Animation', description: 'Opacity fade in/out animation' },
+            { file: 'test6-multiple-shapes.json', name: 'Multiple Shapes', description: 'Multiple shapes in one layer' },
+            { file: 'test7-ellipse-shape.json', name: 'Ellipse Shape', description: 'Non-circular ellipse shape' },
+            { file: 'test8-rounded-rectangle.json', name: 'Rounded Rectangle', description: 'Rectangle with rounded corners' },
+            { file: 'test9-stroke-shape.json', name: 'Stroke Shape', description: 'Shape with stroke instead of fill' },
+            { file: 'test10-fill-and-stroke.json', name: 'Fill and Stroke', description: 'Shape with both fill and stroke' },
+            { file: 'test11-star-shape.json', name: 'Star Shape', description: 'Five-pointed star shape' },
+            { file: 'test12-polygon-shape.json', name: 'Polygon Shape', description: 'Hexagon polygon shape' },
+            { file: 'test13-text-layer.json', name: 'Text Layer', description: 'Text layer with styling' },
+            { file: 'test14-solid-background.json', name: 'Solid Background', description: 'Solid color background layer' },
+            { file: 'test15-complex-animation.json', name: 'Complex Animation', description: 'Multiple simultaneous animations' },
+            { file: 'test16-shape-transform-animation.json', name: 'Shape Transform Animation', description: 'Animated transform within shape group' },
+            { file: 'test17-multiple-layers.json', name: 'Multiple Layers', description: 'Multiple layers with different timing' },
+            { file: 'test18-animated-fill-color.json', name: 'Animated Fill Color', description: 'Color animation from red to blue' },
+            { file: 'test19-parent-child.json', name: 'Parent-Child Relationship', description: 'Layer parenting and hierarchy' },
+            { file: 'test20-comprehensive.json', name: 'Comprehensive Test', description: 'All major features combined' }
+        ];
+
+        const animations = {};
+
+        function createTestCard(test, index) {
+            return `
+                <div class="test-card">
+                    <div class="test-header">
+                        <div class="test-name">${test.name}</div>
+                        <div class="test-description">${test.description}</div>
+                    </div>
+                    <div class="animation-container">
+                        <div id="animation-${index}" class="animation-wrapper"></div>
+                    </div>
+                    <div class="test-controls">
+                        <button onclick="playAnimation(${index})">▶️ Play</button>
+                        <button onclick="pauseAnimation(${index})">⏸️ Pause</button>
+                        <button onclick="stopAnimation(${index})">⏹️ Stop</button>
+                    </div>
+                    <div class="status" id="status-${index}">Ready</div>
+                </div>
+            `;
+        }
+
+        async function loadAnimation(test, index) {
+            try {
+                const response = await fetch(`output/${test.file}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const animationData = await response.json();
+                
+                const container = document.getElementById(`animation-${index}`);
+                const animation = lottie.loadAnimation({
+                    container: container,
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    animationData: animationData
+                });
+
+                animations[index] = animation;
+                document.getElementById(`status-${index}`).textContent = '✓ Loaded';
+                document.getElementById(`status-${index}`).style.color = '#27ae60';
+            } catch (error) {
+                document.getElementById(`status-${index}`).innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+                console.error(`Failed to load ${test.file}:`, error);
+            }
+        }
+
+        async function init() {
+            const grid = document.getElementById('test-grid');
+            grid.innerHTML = tests.map((test, index) => createTestCard(test, index)).join('');
+
+            // Load all animations
+            for (let i = 0; i < tests.length; i++) {
+                await loadAnimation(tests[i], i);
+            }
+        }
+
+        function playAnimation(index) {
+            if (animations[index]) {
+                animations[index].play();
+            }
+        }
+
+        function pauseAnimation(index) {
+            if (animations[index]) {
+                animations[index].pause();
+            }
+        }
+
+        function stopAnimation(index) {
+            if (animations[index]) {
+                animations[index].stop();
+            }
+        }
+
+        function playAll() {
+            Object.values(animations).forEach(anim => anim.play());
+        }
+
+        function pauseAll() {
+            Object.values(animations).forEach(anim => anim.pause());
+        }
+
+        function stopAll() {
+            Object.values(animations).forEach(anim => anim.stop());
+        }
+
+        function reloadAll() {
+            location.reload();
+        }
+
+        // Initialize on page load
+        init();
+    </script>
+</body>
+</html>
