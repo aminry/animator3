@@ -14,7 +14,8 @@
     "serve": "node serve.js",
     "view": "node serve.js",
     "dev": "tsc --watch",
-    "test:sandbox-e2e": "tsc && node dist/tests/sandbox-e2e.js"
+    "test:sandbox-e2e": "tsc && node dist/tests/sandbox-e2e.js",
+    "test:renderer-e2e": "tsc && node dist/tests/render-e2e.js"
   },
   "keywords": ["lottie", "animation", "motion", "sdk"],
   "author": "",
@@ -24,6 +25,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "vm2": "^3.10.0"
+    "vm2": "^3.10.0",
+    "puppeteer": "^24.31.0"
   }
 }
