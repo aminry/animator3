@@ -19,18 +19,28 @@
     "test:director-e2e": "tsc && node dist/tests/director-e2e.js",
     "test:animator-e2e": "tsc && node dist/tests/animator-e2e.js",
     "test:critic-e2e": "tsc && node dist/tests/critic-e2e.js",
-    "test:orchestrator-e2e": "tsc && node dist/tests/orchestrator-e2e.js"
+    "test:orchestrator-e2e": "tsc && node dist/tests/orchestrator-e2e.js",
+    "test:asset-processor-e2e": "tsc && node dist/tests/assetProcessor-e2e.js"
   },
-  "keywords": ["lottie", "animation", "motion", "sdk"],
+  "keywords": [
+    "lottie",
+    "animation",
+    "motion",
+    "sdk"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@types/cheerio": "^1.0.0",
     "@types/node": "^20.0.0",
+    "@types/svgo": "^3.0.0",
     "typescript": "^5.0.0"
   },
   "dependencies": {
     "@langchain/langgraph": "^1.0.2",
-    "vm2": "^3.10.0",
-    "puppeteer": "^24.31.0"
+    "cheerio": "^1.1.2",
+    "puppeteer": "^24.31.0",
+    "svgo": "^4.0.0",
+    "vm2": "^3.10.0"
   }
 }

@@ -122,17 +122,197 @@ This is a comprehensive technical roadmap designed to be fed into an **AI Coder*
 
 ## Phase 5: Frontend (The Studio)
 
-### Task 5.1: Interactive Canvas
-* **Description:** Next.js UI to display the result.
-* **Technical Details:**
-    * Use `lottie-react` to render the final JSON.
-    * Build a "Scrubber" timeline.
-    * Real-time status logs ("Director is planning...", "Critic is reviewing...").
-* **Verification:** UI updates state as the backend processes the LangGraph chain.
+**Global Technical Context for AI Coder:**
+* **Framework:** Next.js 16 (App Router).
+* **Language:** TypeScript (Strict Mode).
+* **Styling:** Tailwind CSS + `shadcn/ui` components.
+* **State:** `zustand` (Global Client State).
+* **Icons:** `lucide-react`.
 
-### Task 5.2: The "Remix" Input
-* **Description:** Allow users to talk to the Animator agent to make changes.
-* **Technical Details:**
-    * Chat interface that appends to the `LangGraph` state.
-    * User: "Make it faster." -> New cycle starts at `Animator` node with instruction "Increase speed."
-* **Verification:** Generate an animation. Type "Change background to blue." The system should regenerate with only that change.
+---
+
+### Task 5.1: Project Scaffold & Global State Store
+**Goal:** Initialize the Next.js application, install UI dependencies, and create the central data store that will hold the "Brain" of the application.
+**Description:** Set up a clean Next.js 15 project. Install `shadcn/ui` (button, scroll-area, tabs, card). Create a `zustand` store to manage the application state (Code, Logs, Storyboard).
+
+**Technical Specs:**
+* Initialize `next-app` with TypeScript/Tailwind/ESLint.
+* **Store Definition (`src/store/studioStore.ts`):**
+    * `logs`: Array of `{ source: 'Director'|'Animator'|'Critic', message: string, timestamp: number }`.
+    * `code`: String (current TypeScript SDK code).
+    * `lottieJson`: Object (current compiled animation).
+    * `storyboard`: Object (current Director plan).
+    * `isStreaming`: Boolean.
+    * Actions: `addLog`, `setCode`, `setLottie`, `setStoryboard`.
+
+**Files to Create:**
+* `src/store/studioStore.ts`
+* `src/components/ui/...` (Shadcn components)
+
+**Verification:**
+1.  Run `npm run dev`.
+2.  Create a temporary `<TestComponent />` that calls `useStudioStore`.
+3.  Click a button to add a mock log.
+4.  **Expectation:** The log count increases in the UI, confirming Zustand is working.
+
+---
+
+### Task 5.2: The Resizable "Mosaic" Layout
+**Goal:** Implement the "Three-Pane" IDE layout using `react-resizable-panels`.
+**Description:** Create the main page layout. It must support resizing between the **Left** (Director/Logs), **Center** (Stage), and **Right** (Code/Controls) panels.
+
+**Technical Specs:**
+* Use `react-resizable-panels`.
+* **Structure:**
+    * Horizontal Group.
+    * Panel 1 (Left): default size 20%.
+    * Handle.
+    * Panel 2 (Center): default size 50%.
+    * Handle.
+    * Panel 3 (Right): default size 30%.
+* Persist layout to `localStorage` (built-in feature of the library).
+
+**Files to Create:**
+* `src/app/page.tsx` (Main layout implementation).
+* `src/components/studio/StudioLayout.tsx`.
+
+**Verification:**
+1.  Render the page with colored placeholders in each panel (Red/Green/Blue).
+2.  Drag the borders.
+3.  Refresh the page.
+4.  **Expectation:** The panels should remain at the resized positions after refresh.
+
+---
+
+### Task 5.3: Left Pane - The "Thought Stream" (SSE Log Terminal)
+**Goal:** Build the visual interface for the AI Agents' "thought process."
+**Description:** A scrollable terminal view. As logs arrive in the Zustand store, they should appear here. It needs auto-scroll-to-bottom functionality.
+
+**Technical Specs:**
+* **UI:** `ScrollArea` (shadcn).
+* **Styling:**
+    * Director logs: Blue accent.
+    * Animator logs: Green accent (monospace font for code snippets).
+    * Critic logs: Red accent.
+* **Auto-Scroll:** Use a `useRef` on the viewport end to scroll into view when `logs` array changes.
+
+**Files to Create:**
+* `src/components/studio/LogTerminal.tsx`.
+* `src/hooks/useAutoScroll.ts`.
+
+**Verification:**
+1.  Use the `TestComponent` from Task 5.1 to push 20 logs rapidly.
+2.  **Expectation:** The view should automatically scroll to keep the newest log visible.
+3.  **Expectation:** Logs should be color-coded by source.
+
+---
+
+### Task 5.4: Right Pane - Monaco Editor with SDK Injection
+**Goal:** Embed VS Code (Monaco) into the browser to display the generated code. Crucially, it must know our "Motion SDK" types.
+**Description:** Integrate `@monaco-editor/react`. Configure it to be read-only by default (but unlockable). Inject a mock `.d.ts` definition string so the editor highlights our `stage.addText()` functions correctly.
+
+**Technical Specs:**
+* **Library:** `@monaco-editor/react`.
+* **Theme:** 'vs-dark'.
+* **Type Injection:** On mount, use `monaco.languages.typescript.javascriptDefaults.addExtraLib(SDK_TYPES, 'sdk.d.ts')`.
+    * *Mock SDK Type:* `declare class Stage { addText(s:string): void; render(): void; }`
+* **State Sync:** Bind the editor content to `studioStore.code`.
+
+**Files to Create:**
+* `src/components/studio/CodeEditor.tsx`.
+* `src/lib/sdk-definitions.ts` (The string containing our type definitions).
+
+**Verification:**
+1.  Open the editor.
+2.  Type `stage.`.
+3.  **Expectation:** IntelliSense should pop up showing `.addText()` and `.render()`.
+4.  **Expectation:** Syntax highlighting should work for TypeScript.
+
+---
+
+### Task 5.5: Center Pane - Lottie Player & Scrubber
+**Goal:** Render the Lottie JSON and provide frame-perfect control.
+**Description:** Implement `lottie-react`. Do *not* use the default controls. Build a custom timeline bar (Slider) that scrubs through the animation frames.
+
+**Technical Specs:**
+* **Library:** `lottie-react`.
+* **Ref Handling:** Use `lottieRef.current.goToAndStop(frame, true)` for scrubbing.
+* **UI:**
+    * Play/Pause button (`lucide-react` icons).
+    * `Slider` (shadcn) representing 0% to 100% of animation.
+    * Time display: `00:02 / 00:05`.
+
+**Files to Create:**
+* `src/components/studio/StagePlayer.tsx`.
+* `src/components/studio/TimelineControls.tsx`.
+
+**Verification:**
+1.  Load a sample Lottie JSON into `studioStore.lottieJson`.
+2.  Press Play. **Expectation:** Animation plays.
+3.  Drag Slider to middle. **Expectation:** Animation freezes at exact middle frame.
+
+---
+
+### Task 5.6: Center Pane - The "Critic" Overlay
+**Goal:** Visualize the AI Critic's feedback directly on the canvas.
+**Description:** Create an overlay layer on top of the Lottie player. It renders bounding boxes (divs with red borders) based on specific coordinates, mimicking "computer vision" debugging tools.
+
+**Technical Specs:**
+* **Coordinate System:** The Critic returns 0-1 normalized coordinates (e.g., `x: 0.5, y: 0.5`). Map these to the container's pixel width/height.
+* **Component:** `CriticOverlay.tsx`. Accepts an array of `{ rect: [x,y,w,h], message: string }`.
+* **Interaction:** Hovering the red box shows a Tooltip with the `message`.
+
+**Files to Create:**
+* `src/components/studio/CriticOverlay.tsx`.
+
+**Verification:**
+1.  Hardcode a bounding box `{ rect: [0.1, 0.1, 0.2, 0.2], message: "Low Contrast" }`.
+2.  **Expectation:** A red box appears in the top-left corner (10% offset).
+3.  **Expectation:** Hovering the box reveals "Low Contrast".
+
+---
+
+### Task 5.7: Server-Sent Events (SSE) Hook
+**Goal:** Connect the frontend to the backend stream.
+**Description:** Create a custom React hook `useAgentStream(sessionId)`. It connects to `/api/stream`, listens for message events, and dispatches them to the `studioStore`.
+
+**Technical Specs:**
+* Use native `EventSource` API.
+* **Event Handling:**
+    * `onmessage`: Parse JSON.
+    * If `type === 'log'`, call `addLog`.
+    * If `type === 'code_update'`, call `setCode`.
+    * If `type === 'lottie_update'`, call `setLottie`.
+* Handle connection cleanup (close on unmount).
+
+**Files to Create:**
+* `src/hooks/useAgentStream.ts`.
+
+**Verification:**
+1.  Create a dummy Next.js API route `/api/stream/test` that sends a message every second.
+2.  Connect the hook.
+3.  **Expectation:** The UI log terminal updates automatically every second without page refresh.
+
+---
+
+### Task 5.8: Telemetry & The "Glass Box" Experiment
+**Goal:** Instrument the UI to track user behavior for the A/B test.
+**Description:** Add analytics tracking to key events. Wrap the UI in a Logic Toggle that can hide/show the "Glass Box" features (Logs/Code) based on a feature flag.
+
+**Technical Specs:**
+* **Analytics:** Create a `trackEvent(name, properties)` utility (mock implementation simply logging to console is fine for now).
+* **Events to Track:**
+    * `code_editor_focus` (User intends to edit).
+    * `scrubber_interaction` (User is inspecting).
+    * `generation_complete_view_time` (Time spent looking at result).
+* **Feature Flag:** `const showGlassBox = useFeatureFlag('glass-box-mode')`.
+    * If `false`, hide Left Pane and Right Pane, center the Stage.
+
+**Files to Create:**
+* `src/lib/telemetry.ts`.
+* `src/hooks/useFeatureFlag.ts` (Mock implementation).
+
+**Verification:**
+1.  Set flag to `false`. **Expectation:** Only the Lottie Player is visible (Simple Mode).
+2.  Set flag to `true`. **Expectation:** Full IDE is visible.
+3.  Click the code editor. **Expectation:** Console logs `[Telemetry] code_editor_focus`.
