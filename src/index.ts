@@ -10,6 +10,8 @@ export { Animation } from './Animation';
 export { Layer, ShapeLayer, SolidLayer, TextLayer, ImageLayer, NullLayer } from './Layer';
 export { Property } from './Property';
 export { ShapeBuilder } from './shapes';
+export { DirectorAgent, DIRECTOR_MODEL, DIRECTOR_SYSTEM_PROMPT } from './directorAgent';
+export type { Storyboard, LLMClient, LLMClientGenerateOptions } from './directorAgent';
 
 // Physics & easing utilities (Task 1.2)
 export { generateKeyframes, SpringPhysicsConfig, TimeValuePair } from './physics';

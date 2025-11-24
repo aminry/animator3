@@ -15,7 +15,8 @@
     "view": "node serve.js",
     "dev": "tsc --watch",
     "test:sandbox-e2e": "tsc && node dist/tests/sandbox-e2e.js",
-    "test:renderer-e2e": "tsc && node dist/tests/render-e2e.js"
+    "test:renderer-e2e": "tsc && node dist/tests/render-e2e.js",
+    "test:director-e2e": "tsc && node dist/tests/director-e2e.js"
   },
   "keywords": ["lottie", "animation", "motion", "sdk"],
   "author": "",
