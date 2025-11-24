@@ -207,7 +207,9 @@
             { file: 'test17-multiple-layers.json', name: 'Multiple Layers', description: 'Multiple layers with different timing' },
             { file: 'test18-animated-fill-color.json', name: 'Animated Fill Color', description: 'Color animation from red to blue' },
             { file: 'test19-parent-child.json', name: 'Parent-Child Relationship', description: 'Layer parenting and hierarchy' },
-            { file: 'test20-comprehensive.json', name: 'Comprehensive Test', description: 'All major features combined' }
+            { file: 'test20-comprehensive.json', name: 'Comprehensive Test', description: 'All major features combined' },
+            { file: 'test21-spring-physics-circle.json', name: 'Spring Physics Circle', description: 'Circle moving from X=0 to X=100 using spring physics (stiffness: 200)' },
+            { file: 'test22-easing-curves.json', name: 'Easing Curves', description: 'Comparative animation for linear, easeIn, easeOut, easeInOut, and a custom cubic-bezier easing' }
         ];
 
         const animations = {};
@@ -234,7 +236,7 @@
 
         async function loadAnimation(test, index) {
             try {
-                const response = await fetch(`output/${test.file}`);
+                const response = await fetch(`golden_tests/${test.file}`);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }

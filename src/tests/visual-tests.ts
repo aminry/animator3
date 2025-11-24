@@ -10,6 +10,9 @@ import * as path from 'path';
 import { Animation } from '../Animation';
 import { ShapeLayer, SolidLayer, TextLayer, NullLayer } from '../Layer';
 import { ShapeBuilder } from '../shapes';
+import { ShapeItem } from '../types';
+import { Property } from '../Property';
+import { generateKeyframes } from '../physics';
 
 // Create output and golden directories
 const OUTPUT_DIR = path.join(process.cwd(), 'output');
@@ -607,6 +610,108 @@ function test20_ComprehensiveTest(): void {
 }
 
 /**
+ * Test 21: Spring Physics Circle
+ * Verifies: Spring-based motion using the physics engine (overshoot and settle)
+ */
+function test21_SpringPhysicsCircle(): void {
+  const fps = 30;
+  const duration = 3;
+  const anim = Animation.create(512, 512, duration, fps);
+  anim.setName('Spring Physics Circle');
+
+  const layer = new ShapeLayer(0, 'Spring Circle', 0, anim.timeToFrame(duration));
+  layer.setPosition(0, 256);
+
+  const springKeyframes = generateKeyframes(0, 100, { stiffness: 200, damping: 20 }, fps);
+
+  const positionProperty = new Property<number[]>([0, 0]);
+  springKeyframes.forEach(kf => {
+    positionProperty.addKeyframe(anim.timeToFrame(kf.time), [kf.value, 0]);
+  });
+
+  const circle = ShapeBuilder.circle('Circle', 60);
+  const fill = ShapeBuilder.fill('Blue Fill', [0.2, 0.6, 1]);
+
+  const transform: ShapeItem = {
+    ty: 'tr',
+    nm: 'Spring Transform',
+    p: positionProperty.toJSON(),
+    a: { a: 0, k: [0, 0] },
+    s: { a: 0, k: [100, 100] },
+    r: { a: 0, k: 0 } as any,
+    o: { a: 0, k: 100 },
+    sk: { a: 0, k: 0 } as any,
+    sa: { a: 0, k: 0 } as any
+  };
+
+  const group = ShapeBuilder.group('Spring Circle Group', [circle, fill, transform]);
+  layer.addShapes([group]);
+  anim.addLayer(layer);
+
+  saveAnimation(anim, 'test21-spring-physics-circle.json');
+}
+
+/**
+ * Test 22: Easing Curves
+ * Verifies: Standard named cubic bezier easings and a custom cubic bezier definition
+ */
+function createEasedTransform(
+  name: string,
+  fromX: number,
+  toX: number,
+  durationSeconds: number,
+  endFrame: number,
+  easing: any
+): ShapeItem {
+  const position = new Property<number[]>([fromX, 0]);
+  position.animateToWithEasing(endFrame, [toX, 0], 0, easing);
+
+  return {
+    ty: 'tr',
+    nm: name,
+    p: position.toJSON(),
+    a: { a: 0, k: [0, 0] },
+    s: { a: 0, k: [100, 100] },
+    r: { a: 0, k: 0 } as any,
+    o: { a: 0, k: 100 },
+    sk: { a: 0, k: 0 } as any,
+    sa: { a: 0, k: 0 } as any
+  };
+}
+
+function test22_EasingCurves(): void {
+  const fps = 30;
+  const duration = 3;
+  const anim = Animation.create(512, 512, duration, fps);
+  anim.setName('Easing Curves');
+
+  const endFrame = anim.timeToFrame(duration);
+
+  const configs = [
+    { name: 'Linear', easing: 'linear', color: [1, 1, 1] as [number, number, number], y: 160 },
+    { name: 'Ease In', easing: 'easeIn', color: [0.4, 0.8, 1] as [number, number, number], y: 220 },
+    { name: 'Ease Out', easing: 'easeOut', color: [0.4, 1, 0.6] as [number, number, number], y: 280 },
+    { name: 'Ease In Out', easing: 'easeInOut', color: [1, 0.8, 0.4] as [number, number, number], y: 340 },
+    { name: 'Custom Bezier', easing: [0.2, 0.8, 0.2, 1], color: [1, 0.4, 0.6] as [number, number, number], y: 400 }
+  ];
+
+  configs.forEach((cfg, index) => {
+    const layer = new ShapeLayer(index, cfg.name, 0, endFrame);
+    layer.setPosition(80, cfg.y);
+
+    const circle = ShapeBuilder.circle('Circle', 30);
+    const fill = ShapeBuilder.fill('Fill', cfg.color);
+    const transform = createEasedTransform(`${cfg.name} Transform`, 0, 320, duration, endFrame, cfg.easing);
+    const group = ShapeBuilder.group(`${cfg.name} Group`, [circle, fill, transform]);
+
+    layer.addShapes([group]);
+    anim.addLayer(layer);
+  });
+
+  saveAnimation(anim, 'test22-easing-curves.json');
+}
+
+/**
  * Run all tests
  */
 function runAllTests(): void {
@@ -635,6 +740,8 @@ function runAllTests(): void {
     test18_AnimatedFillColor();
     test19_ParentChild();
     test20_ComprehensiveTest();
+    test21_SpringPhysicsCircle();
+    test22_EasingCurves();
 
     console.log('\n✅ All tests completed successfully!');
     console.log(`\n📁 Generated ${fs.readdirSync(OUTPUT_DIR).length} Lottie JSON files in: ${OUTPUT_DIR}`);

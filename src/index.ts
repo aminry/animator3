@@ -11,6 +11,17 @@ export { Layer, ShapeLayer, SolidLayer, TextLayer, ImageLayer, NullLayer } from 
 export { Property } from './Property';
 export { ShapeBuilder } from './shapes';
 
+// Physics & easing utilities (Task 1.2)
+export { generateKeyframes, SpringPhysicsConfig, TimeValuePair } from './physics';
+export {
+  cubicBezierEasing,
+  getCubicBezierEasing,
+  StandardEasings,
+  NamedEasing,
+  CubicBezierDefinition,
+  LottieEasing
+} from './easing';
+
 // Type definitions
 export * from './types';
 

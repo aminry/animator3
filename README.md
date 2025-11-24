@@ -4,6 +4,15 @@
 
 A type-safe TypeScript abstraction layer for creating Lottie animations without DOM dependencies. Runs in pure Node.js environment.
 
+## Task 1.2: Implement Physics & Easing Engine ✅
+
+Spring-physics-based motion and standardized easing utilities built on top of the core Lottie builder:
+
+- Spring solver that converts configs like `stiffness`, `damping`, `mass`, and `initialVelocity` into time/value keyframes via `generateKeyframes(start, end, physicsConfig, fps)`.
+- Cubic Bezier easing helpers (`linear`, `easeIn`, `easeOut`, `easeInOut`, and custom `[x1, y1, x2, y2]` definitions) mapped to Lottie `i`/`o` tangents.
+- Integration with the `Property` class through `animateToWithEasing`, so high-level code can apply named or custom curves.
+- Visual tests to validate behavior: a spring-driven circle (overshoot and settle) and a comparative easing demo.
+
 ## Features Implemented
 
 ### Core Classes
@@ -61,7 +70,7 @@ npm run build
 npm run test:build
 ```
 
-This will generate 20 Lottie JSON files in the `output/` directory.
+This will generate 22 Lottie JSON files in the `output/` directory.
 
 ## Visual Verification
 
@@ -73,7 +82,7 @@ npm run serve
 
 Then open `http://localhost:8080/viewer.html` in your browser. The viewer provides:
 
-- **20 comprehensive test cases** covering all features
+- **22 comprehensive test cases** covering all features
 - Play/Pause/Stop controls for each animation
 - Global controls to manage all animations at once
 - Visual feedback on load status
@@ -100,6 +109,8 @@ Then open `http://localhost:8080/viewer.html` in your browser. The viewer provid
 18. **Animated Fill Color** - Color transitions
 19. **Parent-Child Relationship** - Layer parenting
 20. **Comprehensive Test** - All features combined
+21. **Spring Physics Circle** - Spring-based motion from X=0 to X=100 with overshoot and settle
+22. **Easing Curves** - Linear, ease-in, ease-out, ease-in-out, and custom cubic Bezier motion
 
 ## API Usage
 
@@ -135,6 +146,8 @@ src/
 ├── Property.ts       # Animatable property class
 ├── Layer.ts          # Layer base class and implementations
 ├── shapes.ts         # Shape builder utilities
+├── physics.ts        # Spring physics engine (Task 1.2)
+├── easing.ts         # Cubic Bezier easing utilities (Task 1.2)
 ├── Animation.ts      # Main animation class
 ├── index.ts          # Public API exports
 └── tests/
@@ -149,7 +162,7 @@ src/
 2. **Maps to Lottie Schema** - Follows bodymovin schema structure
 3. **`.toJSON()` method** - Exports strictly valid Lottie JSON
 4. **No DOM dependencies** - Pure Node.js, no window/document usage
-5. **Unit tests** - 20 visual tests covering all features
+5. **Unit tests** - 22 visual tests covering all features
 
 ### ✅ Core Classes Implemented
 
@@ -170,9 +183,8 @@ src/
 
 ## Next Steps
 
-This completes **Task 1.1: Build the Lottie JSON Builder**. The next tasks are:
+This completes **Task 1.1: Build the Lottie JSON Builder** and **Task 1.2: Implement Physics & Easing Engine**. The next task is:
 
-- **Task 1.2**: Implement Physics & Easing Engine
 - **Task 1.3**: The "MotionScript" High-Level API
 
 ## License

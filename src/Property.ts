@@ -1,4 +1,5 @@
 import { Property as PropertyJSON, Keyframe, BezierEasing } from './types';
+import { NamedEasing, CubicBezierDefinition, getCubicBezierEasing } from './easing';
 
 /**
  * Represents an animatable property in Lottie
@@ -98,18 +99,9 @@ export class Property<T> {
     endTime: number,
     endValue: T,
     startTime: number = 0,
-    easing: 'linear' | 'easeIn' | 'easeOut' | 'easeInOut' = 'linear'
+    easing: NamedEasing | CubicBezierDefinition = 'linear'
   ): this {
-    // Lottie cubic bezier control points
-    // Format: { x: [n], y: [n] }
-    const easingCurves = {
-      linear: { i: {x:[1], y:[1]}, o: {x:[0], y:[0]} },
-      easeIn: { i: {x:[1], y:[1]}, o: {x:[0.33], y:[0]} }, // Quad ease in
-      easeOut: { i: {x:[0.33], y:[1]}, o: {x:[0], y:[0]} }, // Quad ease out
-      easeInOut: { i: {x:[0.833], y:[0.833]}, o: {x:[0.167], y:[0.167]} } // Standard default
-    };
-
-    const curve = easingCurves[easing];
+    const curve = getCubicBezierEasing(easing);
     
     this.animated = true;
     this.keyframes = [
