@@ -13,7 +13,8 @@
     "example": "tsc && node dist/example.js",
     "serve": "node serve.js",
     "view": "node serve.js",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test:sandbox-e2e": "tsc && node dist/tests/sandbox-e2e.js"
   },
   "keywords": ["lottie", "animation", "motion", "sdk"],
   "author": "",
@@ -22,5 +23,7 @@
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "vm2": "^3.10.0"
+  }
 }
