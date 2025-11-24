@@ -7,7 +7,7 @@ Standard AI tools are "Black Boxes" (Input $\rightarrow$ Magic $\rightarrow$ Out
 
 ## 2\. Technology Stack (Modern & Robust)
 
-  * **Framework:** **Next.js 15** (App Router) – For React Server Components (RSC) and easy streaming.
+  * **Framework:** **Next.js 16** (App Router) – For React Server Components (RSC) and easy streaming.
   * **UI System:** **Shadcn UI** + **Tailwind CSS** – For accessible, professional-grade components that we can easily customize.
   * **State Management:** **Zustand** – Lightweight global state (perfect for tracking the complex "Director $\rightarrow$ Animator" loop) without the boilerplate of Redux.
   * **Code Editor:** **@monaco-editor/react** – The VS Code engine embedded in the browser for the "Animator" view.

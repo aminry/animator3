@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, ChangeEvent } from "react";
+import TestStudioStore from "../src/components/TestStudioStore";
 
 const DEFAULT_CODE = `import { Motion } from "@motiongen/sdk";
 
@@ -89,6 +90,7 @@ export default function HomePage() {
             {result.message && <p>Message: {result.message}</p>}
           </div>
         )}
+        <TestStudioStore />
       </div>
     </main>
   );
