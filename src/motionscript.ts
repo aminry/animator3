@@ -279,5 +279,10 @@ export class Stage {
  * For now we only expose the Stage class as the primary entry.
  */
 export const Motion = {
-  Stage
+  Stage,
+  spring(config: SpringPhysicsConfig): SpringPhysicsConfig {
+    return {
+      ...config
+    };
+  }
 };

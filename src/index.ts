@@ -12,6 +12,8 @@ export { Property } from './Property';
 export { ShapeBuilder } from './shapes';
 export { DirectorAgent, DIRECTOR_MODEL, DIRECTOR_SYSTEM_PROMPT } from './directorAgent';
 export type { Storyboard, LLMClient, LLMClientGenerateOptions } from './directorAgent';
+export { AnimatorAgent, ANIMATOR_MODEL, ANIMATOR_SYSTEM_PROMPT_BASE } from './animatorAgent';
+export type { AnimatorAgentGenerateOptions } from './animatorAgent';
 
 // Physics & easing utilities (Task 1.2)
 export { generateKeyframes, SpringPhysicsConfig, TimeValuePair } from './physics';
