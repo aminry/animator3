@@ -135,6 +135,23 @@ el.animate({ props: { position: { from: [x1,y1], to: [x2,y2] } }, easing: 'easeO
 export default stage.toJSON();
 ```
 
+### LLM Clients
+
+Two `LLMClient` implementations exist:
+
+| Client | File | When used |
+|--------|------|-----------|
+| `GroqLLMClient` | `groqClient.ts` | Default for all agents (text + vision via imageUrls) |
+| `OllamaClient` | `ollamaClient.ts` | Local InternVL3_5 via Ollama when `VISION_MODEL_ENABLED=true` |
+
+`OllamaClient` accepts an optional `fallback: LLMClient` — if the Ollama server is unreachable it transparently retries against the fallback.
+
+`createStudioNodes` takes `StudioLLMClients { textClient, visionClient }`:
+- `textClient` → PromptClassifier, Director, ScenePlanner, Animator, SceneRefinement
+- `visionClient` → Critic (evaluates rendered frames as images)
+
+When `VISION_MODEL_ENABLED=true` the singleton `studioGraph` creates an `OllamaClient` (with Groq fallback) as `visionClient`; otherwise both clients are the same `GroqLLMClient`.
+
 ### Debug Output
 
 When `MOTIONGEN_DEBUG=1`, debug files are written to `backend/debug/`:

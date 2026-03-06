@@ -9,6 +9,7 @@ import type { SandboxResult } from "./sandboxRunner";
 import type { LottieJSON } from "./types";
 import { renderFrames } from "./renderer";
 import { GroqLLMClient } from "./groqClient";
+import { OllamaClient } from "./ollamaClient";
 import { debugLog } from "./logger";
 import type { LottieMetricsSummary } from "./sharedApiTypes";
 import { computeLottieMetrics } from "./lottieMetrics";
@@ -234,13 +235,28 @@ function computeCriticTimestamps(
   return positions.map((p) => p * clampedDuration);
 }
 
-export function createStudioNodes(llmClient: LLMClient): StudioNodes {
-  const promptClassifierAgent = new PromptClassifierAgent(llmClient);
-  const directorAgent = new DirectorAgent(llmClient);
-  const animatorAgent = new AnimatorAgent(llmClient);
-  const criticAgent = new CriticAgent(llmClient);
-  const scenePlannerAgent = new ScenePlannerAgent(llmClient);
-  const sceneRefinementAgent = new SceneRefinementAgent(llmClient);
+export interface StudioLLMClients {
+  /**
+   * Text-only LLM client. Used for classification, animation code generation,
+   * scene planning, and scene refinement.
+   */
+  textClient: LLMClient;
+  /**
+   * Vision-capable LLM client. Used for the Critic agent which evaluates
+   * rendered animation frames as images. When Ollama/InternVL3_5 is enabled
+   * this will be an OllamaClient; otherwise it falls back to the same text
+   * client (Groq also supports vision via imageUrls).
+   */
+  visionClient: LLMClient;
+}
+
+export function createStudioNodes(clients: StudioLLMClients): StudioNodes {
+  const promptClassifierAgent = new PromptClassifierAgent(clients.textClient);
+  const directorAgent = new DirectorAgent(clients.textClient);
+  const animatorAgent = new AnimatorAgent(clients.textClient);
+  const criticAgent = new CriticAgent(clients.visionClient);
+  const scenePlannerAgent = new ScenePlannerAgent(clients.textClient);
+  const sceneRefinementAgent = new SceneRefinementAgent(clients.textClient);
 
   return {
     async promptClassifier(state: StudioStateValue) {
@@ -620,7 +636,35 @@ export function createStudioNodes(llmClient: LLMClient): StudioNodes {
   };
 }
 
-const llmClient = new GroqLLMClient();
+function createDefaultLLMClients(): StudioLLMClients {
+  const textClient = new GroqLLMClient();
+
+  const visionEnabled =
+    process.env.VISION_MODEL_ENABLED === "true" ||
+    process.env.VISION_MODEL_ENABLED === "1";
+
+  if (visionEnabled) {
+    debugLog(
+      "orchestrator:init",
+      "VISION_MODEL_ENABLED=true — using OllamaClient for vision agents",
+      {
+        baseUrl: process.env.OLLAMA_BASE_URL ?? "http://localhost:11434",
+        model: process.env.OLLAMA_MODEL ?? "blaifa/InternVL3_5:4B",
+      }
+    );
+    const visionClient = new OllamaClient({ fallback: textClient });
+    return { textClient, visionClient };
+  }
+
+  debugLog(
+    "orchestrator:init",
+    "VISION_MODEL_ENABLED not set — using GroqLLMClient for all agents",
+    {}
+  );
+  return { textClient, visionClient: textClient };
+}
+
+const defaultClients = createDefaultLLMClients();
 export const studioGraph: StudioGraph = createStudioGraph(
-  createStudioNodes(llmClient)
+  createStudioNodes(defaultClients)
 );

@@ -28,6 +28,12 @@ export {
   LottieEasing
 } from './easing';
 
+// LLM clients
+export { GroqLLMClient } from './groqClient';
+export type { GroqClientOptions } from './groqClient';
+export { OllamaClient } from './ollamaClient';
+export type { OllamaClientOptions } from './ollamaClient';
+
 // MotionScript high-level API (Task 1.3)
 export { Stage, Motion } from './motionscript';
 

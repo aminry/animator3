@@ -1,4 +1,4 @@
-import { createStudioGraph, createStudioNodes, type StudioStateValue } from "../orchestrator";
+import { createStudioGraph, createStudioNodes, type StudioStateValue, type StudioLLMClients } from "../orchestrator";
 import {
   type LLMClient,
   type LLMClientGenerateOptions,
@@ -434,7 +434,8 @@ const FLOW_TEST_CASES: FlowTestCase[] = [
 
 async function runFlowTest(testCase: FlowTestCase): Promise<void> {
   const client = new MockLLMClient();
-  const realNodes = createStudioNodes(client);
+  const clients: StudioLLMClients = { textClient: client, visionClient: client };
+  const realNodes = createStudioNodes(clients);
 
   const nodes = {
     ...realNodes,
