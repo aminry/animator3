@@ -5,21 +5,12 @@ import {
   parseStoryboardTimelineToBeats,
 } from "./storyboardTypes";
 import type { StoryboardBeat } from "./storyboardTypes";
-import type { AnimationMode } from "./scenePlan";
-import type { PromptClassification } from "./promptClassifierAgent";
 
 export interface Storyboard {
   vibe: string;
   colorPalette: string[];
   timeline: string[];
   beats?: StoryboardBeat[];
-}
-
-export interface DirectorPlanOptions {
-  prompt: string;
-  mode?: AnimationMode | null;
-  classification?: PromptClassification | null;
-  targetDurationSecondsHint?: number;
 }
 
 export interface LLMClientGenerateOptions {
@@ -265,81 +256,6 @@ export function normalizeStoryboard(raw: unknown): Storyboard {
   };
 }
 
-export function buildDirectorUserPrompt(options: DirectorPlanOptions): string {
-  const lines: string[] = [];
-
-  lines.push(
-    "You are given the user's original animation request plus an optional animation mode classification."
-  );
-  lines.push(
-    "Use this information to produce a detailed storyboard JSON as described in the system prompt."
-  );
-  lines.push("");
-
-  if (options.mode) {
-    lines.push(`Animation mode (hint): ${options.mode}`);
-  }
-
-  if (
-    typeof options.targetDurationSecondsHint === "number" &&
-    isFinite(options.targetDurationSecondsHint) &&
-    options.targetDurationSecondsHint > 0
-  ) {
-    lines.push(
-      `Target durationSeconds (hint): ${options.targetDurationSecondsHint}`
-    );
-  }
-
-  if (options.mode) {
-    const modeLower = String(options.mode).toLowerCase();
-    lines.push("");
-    lines.push("Mode-specific guidance:");
-
-    if (modeLower === "banner") {
-      lines.push(
-        "- Treat this as a banner or promo scene with strong text hierarchy and brand-like layout."
-      );
-      lines.push(
-        "- Ensure roles such as 'main-text', 'supporting-text', and a brand or 'logo-mark' element appear across beats."
-      );
-      lines.push(
-        "- Use background and midground accent shapes to support the message without overwhelming readability."
-      );
-    } else if (modeLower === "game-demo") {
-      lines.push(
-        "- Treat this as a small 2D game or match demonstration (e.g. paddles, ball, table, score)."
-      );
-      lines.push(
-        "- Ensure there are explicit beats and roles for players/paddles, the ball, the playfield/table/court, and score or scoreboard text."
-      );
-      lines.push(
-        "- Motion should emphasize gameplay arcs, rallies, and clear cause/effect moments, not just abstract motion."
-      );
-    } else if (modeLower === "product-demo") {
-      lines.push(
-        "- Treat this as a product or UI demonstration (app screens, panels, device frames)."
-      );
-      lines.push(
-        "- Ensure roles such as 'ui-panel', 'device-frame', key labels, and interaction hints (cursor, highlight) appear in the beats."
-      );
-      lines.push(
-        "- Structure the timeline around showing a focused flow: intro frame, key interaction steps, and a clear summary/outro frame."
-      );
-    }
-  }
-
-  if (options.classification) {
-    lines.push("");
-    lines.push("Prompt classification JSON (mode, flags, duration):");
-    lines.push(JSON.stringify(options.classification, null, 2));
-  }
-
-  lines.push("");
-  lines.push("Original user prompt:");
-  lines.push(options.prompt);
-
-  return lines.join("\n");
-}
 
 export class DirectorAgent {
   private readonly client: LLMClient;
@@ -383,44 +299,4 @@ export class DirectorAgent {
     return storyboard;
   }
 
-  async planStoryboardForMode(options: DirectorPlanOptions): Promise<Storyboard> {
-    const userPrompt = buildDirectorUserPrompt(options);
-
-    debugLog("agent:director", "Requesting storyboard from LLM", {
-      model: DIRECTOR_MODEL,
-      promptSnippet: options.prompt.slice(0, 120),
-      mode: options.mode,
-    });
-
-    const response = await this.client.generate({
-      model: DIRECTOR_MODEL,
-      systemPrompt: DIRECTOR_SYSTEM_PROMPT,
-      userPrompt,
-      jsonMode: true,
-      temperature: 0.85,
-    });
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(response);
-    } catch {
-      throw new Error("DirectorAgent expected JSON response from LLM client");
-    }
-    const storyboard = normalizeStoryboard(parsed);
-
-    writeDebugJSON("storyboard-latest.json", {
-      prompt: options.prompt,
-      mode: options.mode ?? null,
-      classification: options.classification ?? null,
-      targetDurationSecondsHint: options.targetDurationSecondsHint,
-      storyboard,
-    });
-
-    debugLog("agent:director", "Storyboard normalized", {
-      vibe: storyboard.vibe,
-      timelineLength: storyboard.timeline.length,
-    });
-
-    return storyboard;
-  }
 }

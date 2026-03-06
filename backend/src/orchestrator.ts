@@ -14,12 +14,10 @@ import { debugLog } from "./logger";
 import type { LottieMetricsSummary } from "./sharedApiTypes";
 import { computeLottieMetrics } from "./lottieMetrics";
 import { writeDebugJSON, writeDebugText } from "./debugDump";
-import type { ScenePlan, AnimationMode } from "./scenePlan";
+import type { ScenePlan } from "./scenePlan";
 import { ScenePlannerAgent } from "./scenePlannerAgent";
 import { SceneRefinementAgent } from "./sceneRefinementAgent";
 import { validateScenePlanAgainstLottie } from "./sceneValidation";
-import type { PromptClassification } from "./promptClassifierAgent";
-import { PromptClassifierAgent } from "./promptClassifierAgent";
 
 export interface StudioStateValue {
   prompt: string;
@@ -34,9 +32,6 @@ export interface StudioStateValue {
   critique?: string;
   criticResult?: CriticResult;
   attemptCount: number;
-  promptClassification?: PromptClassification | null;
-  mode?: AnimationMode | null;
-  targetDurationSecondsHint?: number;
 }
 
 export const StudioState = Annotation.Root({
@@ -59,9 +54,6 @@ export const StudioState = Annotation.Root({
     default: () => 0,
   }),
   lottieMetrics: Annotation(),
-  promptClassification: Annotation(),
-  mode: Annotation(),
-  targetDurationSecondsHint: Annotation(),
 });
 
 export type StudioNodeResult =
@@ -69,7 +61,6 @@ export type StudioNodeResult =
   | Promise<Partial<StudioStateValue>>;
 
 export interface StudioNodes {
-  promptClassifier(state: StudioStateValue): StudioNodeResult;
   director(state: StudioStateValue): StudioNodeResult;
   scenePlanner(state: StudioStateValue): StudioNodeResult;
   sceneRefinement(state: StudioStateValue): StudioNodeResult;
@@ -88,9 +79,6 @@ export interface StudioGraph {
 
 export function createStudioGraph(nodes: StudioNodes): StudioGraph {
   const workflow = new StateGraph(StudioState)
-    .addNode("promptClassifier", (state: StudioStateValue) =>
-      nodes.promptClassifier(state)
-    )
     .addNode("director", (state: StudioStateValue) => nodes.director(state))
     .addNode("scenePlanner", (state: StudioStateValue) =>
       nodes.scenePlanner(state)
@@ -104,8 +92,7 @@ export function createStudioGraph(nodes: StudioNodes): StudioGraph {
     .addNode("critic", (state: StudioStateValue) => nodes.critic(state));
 
   // Linear edges
-  workflow.addEdge("__start__", "promptClassifier");
-  workflow.addEdge("promptClassifier", "director");
+  workflow.addEdge("__start__", "director");
   workflow.addEdge("director", "scenePlanner");
   workflow.addEdge("scenePlanner", "animator");
   workflow.addEdge("animator", "sandbox");
@@ -182,10 +169,7 @@ function createFallbackStoryboard(prompt: string): Storyboard {
 
 const MAX_CRITIC_FRAMES = CRITIC_MAX_FRAMES;
 
-function computeCriticTimestamps(
-  durationSeconds: number,
-  mode?: AnimationMode | null
-): number[] {
+function computeCriticTimestamps(durationSeconds: number): number[] {
   const clampedDuration = durationSeconds > 0 ? durationSeconds : 0.1;
 
   let frameCount: number;
@@ -197,21 +181,6 @@ function computeCriticTimestamps(
     frameCount = 8;
   } else {
     frameCount = 9;
-  }
-
-  const highMotionModes: AnimationMode[] = [
-    "game-demo",
-    "product-demo",
-    "character-moment",
-  ];
-
-  if (mode && highMotionModes.includes(mode)) {
-    if (clampedDuration > 4 && frameCount < 7) {
-      frameCount = 7;
-    }
-    if (clampedDuration > 8 && frameCount < 9) {
-      frameCount = 9;
-    }
   }
 
   frameCount = Math.min(frameCount, MAX_CRITIC_FRAMES);
@@ -251,7 +220,6 @@ export interface StudioLLMClients {
 }
 
 export function createStudioNodes(clients: StudioLLMClients): StudioNodes {
-  const promptClassifierAgent = new PromptClassifierAgent(clients.textClient);
   const directorAgent = new DirectorAgent(clients.textClient);
   const animatorAgent = new AnimatorAgent(clients.textClient);
   const criticAgent = new CriticAgent(clients.visionClient);
@@ -259,56 +227,12 @@ export function createStudioNodes(clients: StudioLLMClients): StudioNodes {
   const sceneRefinementAgent = new SceneRefinementAgent(clients.textClient);
 
   return {
-    async promptClassifier(state: StudioStateValue) {
-      const assets = Array.isArray(state.assets) ? state.assets : [];
-
-      debugLog(
-        "orchestrator:promptClassifier",
-        "Classifying prompt for animation mode and duration",
-        {
-          prompt: state.prompt,
-          assetsCount: assets.length,
-        }
-      );
-
-      const classification = await promptClassifierAgent.classify({
-        prompt: state.prompt,
-        assets,
-      });
-
-      return {
-        promptClassification: classification,
-        mode: classification.mode,
-        targetDurationSecondsHint: classification.targetDurationSeconds,
-      };
-    },
-
     async director(state: StudioStateValue) {
       debugLog("orchestrator:director", "Planning storyboard", {
         prompt: state.prompt,
       });
-      const mode: AnimationMode | null =
-        (state.mode as AnimationMode | null) ?? null;
-      const classification =
-        (state.promptClassification as PromptClassification | null) ?? null;
-      const targetDurationSecondsHint =
-        typeof state.targetDurationSecondsHint === "number" &&
-        isFinite(state.targetDurationSecondsHint) &&
-        state.targetDurationSecondsHint > 0
-          ? state.targetDurationSecondsHint
-          : undefined;
 
-      let storyboard: Storyboard;
-      if (!mode && !classification && targetDurationSecondsHint === undefined) {
-        storyboard = await directorAgent.planStoryboard(state.prompt);
-      } else {
-        storyboard = await directorAgent.planStoryboardForMode({
-          prompt: state.prompt,
-          mode,
-          classification,
-          targetDurationSecondsHint,
-        });
-      }
+      const storyboard = await directorAgent.planStoryboard(state.prompt);
 
       debugLog("orchestrator:director", "Storyboard planned", {
         vibe: storyboard.vibe,
@@ -327,14 +251,10 @@ export function createStudioNodes(clients: StudioLLMClients): StudioNodes {
       const baseStoryboard =
         state.storyboard ?? createFallbackStoryboard(state.prompt);
 
-      const mode: AnimationMode =
-        (state.mode as AnimationMode | null) ?? "banner";
-
       debugLog(
         "orchestrator:scenePlanner",
         "Planning scene from storyboard",
         {
-          mode,
           prompt: state.prompt,
           hasStoryboard: Boolean(state.storyboard),
         }
@@ -342,13 +262,11 @@ export function createStudioNodes(clients: StudioLLMClients): StudioNodes {
 
       const scenePlan = await scenePlannerAgent.planScene({
         storyboard: baseStoryboard,
-        mode,
         originalPrompt: state.prompt,
       });
 
       writeDebugJSON("scene-plan-latest.json", {
         prompt: state.prompt,
-        mode,
         storyboard: baseStoryboard,
         scenePlan,
       });
@@ -562,14 +480,10 @@ export function createStudioNodes(clients: StudioLLMClients): StudioNodes {
           : ip + fr * 3;
       const durationSeconds = (op - ip) / fr;
 
-      const mode: AnimationMode | null =
-        (state.mode as AnimationMode | null) ?? null;
-
-      const timestamps = computeCriticTimestamps(durationSeconds, mode);
+      const timestamps = computeCriticTimestamps(durationSeconds);
 
       debugLog("orchestrator:renderer", "Rendering frames", {
         durationSeconds,
-        mode,
         timestamps,
       });
 

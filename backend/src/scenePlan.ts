@@ -1,15 +1,11 @@
 import type { ColorRGB, Position2D, Scale2D } from './types';
 
-export type AnimationMode =
-  | 'banner'
-  | 'game-demo'
-  | 'product-demo'
-  | 'data-viz'
-  | 'explainer'
-  | 'loader/loop'
-  | 'logo-sting'
-  | 'character-moment'
-  | string;
+/**
+ * Free-form string describing the animation's style or purpose.
+ * No longer restricted to a fixed set of categories — any descriptive
+ * string is valid (e.g. "abstract loop", "product reveal", "data story").
+ */
+export type AnimationMode = string;
 
 export type SceneObjectKind =
   | 'text'
@@ -71,7 +67,8 @@ export interface ScenePath {
 
 export interface ScenePlan {
   durationSeconds: number;
-  mode: AnimationMode;
+  /** Optional free-form style hint from the LLM. Not used for routing. */
+  mode?: AnimationMode;
   objects: SceneObject[];
   paths?: ScenePath[];
 }

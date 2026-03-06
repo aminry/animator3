@@ -86,8 +86,6 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
           criticResult: (result as any).criticResult,
           attemptCount:
             typeof result.attemptCount === "number" ? result.attemptCount : 0,
-          mode: (result as any).mode ?? null,
-          promptClassification: (result as any).promptClassification ?? null,
         };
 
         sendJson(res, 200, {

@@ -2,9 +2,8 @@ import { createStudioGraph, createStudioNodes, type StudioStateValue, type Studi
 import {
   type LLMClient,
   type LLMClientGenerateOptions,
+  DIRECTOR_SYSTEM_PROMPT,
 } from "../directorAgent";
-import { PROMPT_CLASSIFIER_SYSTEM_PROMPT } from "../promptClassifierAgent";
-import { DIRECTOR_SYSTEM_PROMPT } from "../directorAgent";
 import { SCENE_PLANNER_SYSTEM_PROMPT } from "../scenePlannerAgent";
 import { ANIMATOR_MODEL } from "../animatorAgent";
 import type { ScenePlan } from "../scenePlan";
@@ -15,20 +14,10 @@ function expect(condition: boolean, message: string): void {
   }
 }
 
-const BANNER_PROMPT =
-  "BANNER FLOW: Promotional banner with headline, supporting text, and CTA button.";
-const GAME_PROMPT =
-  "GAME DEMO FLOW: Quick ping pong game demo with paddles, ball, and score HUD.";
-const PRODUCT_PROMPT =
-  "PRODUCT DEMO FLOW: Product dashboard UI demo with panels and CTA.";
-const DATAVIZ_PROMPT =
-  "DATA VIZ FLOW: Data visualization with line chart and metric highlights.";
-const CHARACTER_PROMPT =
-  "CHARACTER MOMENT FLOW: Mascot character waving hello with subtle idle motion.";
+// ─── Scene plans for each test case ──────────────────────────────────────────
 
-const BANNER_SCENE_PLAN: ScenePlan = {
+const PROMO_SCENE_PLAN: ScenePlan = {
   durationSeconds: 5,
-  mode: "banner",
   objects: [
     {
       id: "bg",
@@ -59,7 +48,6 @@ const BANNER_SCENE_PLAN: ScenePlan = {
 
 const GAME_SCENE_PLAN: ScenePlan = {
   durationSeconds: 6,
-  mode: "game-demo",
   objects: [
     {
       id: "table",
@@ -109,7 +97,6 @@ const GAME_SCENE_PLAN: ScenePlan = {
 
 const PRODUCT_SCENE_PLAN: ScenePlan = {
   durationSeconds: 7,
-  mode: "product-demo",
   objects: [
     {
       id: "device",
@@ -158,7 +145,6 @@ const PRODUCT_SCENE_PLAN: ScenePlan = {
 
 const DATAVIZ_SCENE_PLAN: ScenePlan = {
   durationSeconds: 6,
-  mode: "data-viz",
   objects: [
     {
       id: "chartArea",
@@ -201,7 +187,6 @@ const DATAVIZ_SCENE_PLAN: ScenePlan = {
 
 const CHARACTER_SCENE_PLAN: ScenePlan = {
   durationSeconds: 5,
-  mode: "character-moment",
   objects: [
     {
       id: "character",
@@ -231,76 +216,35 @@ const CHARACTER_SCENE_PLAN: ScenePlan = {
   ],
 };
 
+// ─── Mock LLM client ─────────────────────────────────────────────────────────
+
 class MockLLMClient implements LLMClient {
   async generate(options: LLMClientGenerateOptions): Promise<string> {
     const { systemPrompt, userPrompt, jsonMode, model } = options;
 
-    if (systemPrompt === PROMPT_CLASSIFIER_SYSTEM_PROMPT) {
-      let mode = "banner";
-      let durationSeconds = 5;
-      const flags: { requiresCharacters: boolean; uiDemo: boolean; gameplay: boolean; banner: boolean } = {
-        requiresCharacters: false,
-        uiDemo: false,
-        gameplay: false,
-        banner: false,
-      };
-
-      if (userPrompt.includes("BANNER FLOW")) {
-        mode = "banner";
-        flags.banner = true;
-        durationSeconds = 5;
-      } else if (userPrompt.includes("GAME DEMO FLOW")) {
-        mode = "game-demo";
-        flags.gameplay = true;
-        durationSeconds = 7;
-      } else if (userPrompt.includes("PRODUCT DEMO FLOW")) {
-        mode = "product-demo";
-        flags.uiDemo = true;
-        durationSeconds = 7;
-      } else if (userPrompt.includes("DATA VIZ FLOW")) {
-        mode = "data-viz";
-        durationSeconds = 6;
-      } else if (userPrompt.includes("CHARACTER MOMENT FLOW")) {
-        mode = "character-moment";
-        flags.requiresCharacters = true;
-        durationSeconds = 5;
-      } else {
-        throw new Error(
-          `MockLLMClient (prompt classifier) received unexpected userPrompt: ${userPrompt}`
-        );
-      }
-
-      const payload = {
-        mode,
-        targetDurationSeconds: durationSeconds,
-        flags,
-      };
-
-      return JSON.stringify(payload);
-    }
-
+    // Director: produce a storyboard based on prompt content
     if (systemPrompt === DIRECTOR_SYSTEM_PROMPT) {
       let vibe = "";
       let colorPalette: string[] = [];
       let timeline: string[] = [];
 
-      if (userPrompt.includes("BANNER FLOW")) {
-        vibe = "Test banner flow, bold headline and smooth entrance";
+      if (userPrompt.includes("PROMO BANNER")) {
+        vibe = "Bold promo banner with smooth entrance and strong CTA";
         colorPalette = ["#12002b", "#ff6b00", "#ffffff"];
         timeline = [
           "Intro: background panel and logo ease in",
           "Main: headline and CTA text appear with slight bounce",
           "Outro: elements settle into a clean banner layout",
         ];
-      } else if (userPrompt.includes("GAME DEMO FLOW")) {
+      } else if (userPrompt.includes("PING PONG")) {
         vibe = "Fast-paced game demo with clear table, paddles, ball, and score";
         colorPalette = ["#003366", "#00ff99", "#ffffff"];
         timeline = [
           "Intro: table and paddles appear",
           "Main: ball rallies across the table with score updating",
-          "Outro: final score and logo lockup",
+          "Outro: final score displayed",
         ];
-      } else if (userPrompt.includes("PRODUCT DEMO FLOW")) {
+      } else if (userPrompt.includes("PRODUCT DEMO")) {
         vibe = "Modern product UI demo with smooth panel transitions";
         colorPalette = ["#0b1020", "#3b82f6", "#f9fafb"];
         timeline = [
@@ -308,7 +252,7 @@ class MockLLMClient implements LLMClient {
           "Main: cursor highlights key panels and metrics",
           "Outro: summary state with emphasized CTA",
         ];
-      } else if (userPrompt.includes("DATA VIZ FLOW")) {
+      } else if (userPrompt.includes("DATA VIZ")) {
         vibe = "Clean data visualization with animated chart and metrics";
         colorPalette = ["#111827", "#10b981", "#6b7280"];
         timeline = [
@@ -316,7 +260,7 @@ class MockLLMClient implements LLMClient {
           "Main: line and bars animate to show metric changes",
           "Outro: key data points highlighted with annotations",
         ];
-      } else if (userPrompt.includes("CHARACTER MOMENT FLOW")) {
+      } else if (userPrompt.includes("CHARACTER")) {
         vibe = "Friendly character moment with subtle idle motion";
         colorPalette = ["#111827", "#f97316", "#f9fafb"];
         timeline = [
@@ -330,29 +274,24 @@ class MockLLMClient implements LLMClient {
         );
       }
 
-      const payload = {
-        vibe,
-        colorPalette,
-        timeline,
-      };
-
-      return JSON.stringify(payload);
+      return JSON.stringify({ vibe, colorPalette, timeline });
     }
 
+    // ScenePlanner: select scene plan based on prompt content
     if (systemPrompt === SCENE_PLANNER_SYSTEM_PROMPT) {
-      if (userPrompt.includes("Animation mode: banner")) {
-        return JSON.stringify(BANNER_SCENE_PLAN);
+      if (userPrompt.includes("PROMO BANNER")) {
+        return JSON.stringify(PROMO_SCENE_PLAN);
       }
-      if (userPrompt.includes("Animation mode: game-demo")) {
+      if (userPrompt.includes("PING PONG")) {
         return JSON.stringify(GAME_SCENE_PLAN);
       }
-      if (userPrompt.includes("Animation mode: product-demo")) {
+      if (userPrompt.includes("PRODUCT DEMO")) {
         return JSON.stringify(PRODUCT_SCENE_PLAN);
       }
-      if (userPrompt.includes("Animation mode: data-viz")) {
+      if (userPrompt.includes("DATA VIZ")) {
         return JSON.stringify(DATAVIZ_SCENE_PLAN);
       }
-      if (userPrompt.includes("Animation mode: character-moment")) {
+      if (userPrompt.includes("CHARACTER")) {
         return JSON.stringify(CHARACTER_SCENE_PLAN);
       }
 
@@ -361,6 +300,7 @@ class MockLLMClient implements LLMClient {
       );
     }
 
+    // Animator: return minimal valid MotionScript
     if (!jsonMode && model === ANIMATOR_MODEL) {
       const code = `
 import { Stage } from '@motiongen/sdk';
@@ -392,45 +332,43 @@ export default stage.toJSON();
   }
 }
 
+// ─── Test cases ───────────────────────────────────────────────────────────────
+
 interface FlowTestCase {
   name: string;
   prompt: string;
-  expectedMode: string;
   requiredRoles: string[];
 }
 
 const FLOW_TEST_CASES: FlowTestCase[] = [
   {
-    name: "banner",
-    prompt: BANNER_PROMPT,
-    expectedMode: "banner",
+    name: "promo-banner",
+    prompt: "PROMO BANNER: Promotional banner with headline, supporting text, and CTA button.",
     requiredRoles: ["background", "main-text", "cta-text"],
   },
   {
-    name: "game-demo",
-    prompt: GAME_PROMPT,
-    expectedMode: "game-demo",
+    name: "ping-pong-game",
+    prompt: "PING PONG: Quick ping pong game demo with paddles, ball, and score HUD.",
     requiredRoles: ["playfield", "ball", "paddle-left", "score-text"],
   },
   {
     name: "product-demo",
-    prompt: PRODUCT_PROMPT,
-    expectedMode: "product-demo",
+    prompt: "PRODUCT DEMO: Product dashboard UI demo with panels and CTA.",
     requiredRoles: ["device-frame", "app-screen-main", "ui-panel", "cta-button"],
   },
   {
     name: "data-viz",
-    prompt: DATAVIZ_PROMPT,
-    expectedMode: "data-viz",
+    prompt: "DATA VIZ: Data visualization with line chart and metric highlights.",
     requiredRoles: ["chart-area", "axis-x", "chart-line-main", "data-point-highlight"],
   },
   {
     name: "character-moment",
-    prompt: CHARACTER_PROMPT,
-    expectedMode: "character-moment",
+    prompt: "CHARACTER: Mascot character waving hello with subtle idle motion.",
     requiredRoles: ["character-main", "speech-bubble", "background"],
   },
 ];
+
+// ─── Test runner ──────────────────────────────────────────────────────────────
 
 async function runFlowTest(testCase: FlowTestCase): Promise<void> {
   const client = new MockLLMClient();
@@ -455,14 +393,6 @@ async function runFlowTest(testCase: FlowTestCase): Promise<void> {
   });
 
   expect(!!result.scenePlan, `Expected scenePlan for flow ${testCase.name}`);
-  expect(result.mode === testCase.expectedMode, `Expected mode=${testCase.expectedMode} for flow ${testCase.name}, got ${result.mode}`);
-
-  if (result.promptClassification) {
-    expect(
-      result.promptClassification.mode === testCase.expectedMode,
-      `Expected promptClassification.mode=${testCase.expectedMode} for flow ${testCase.name}, got ${result.promptClassification.mode}`
-    );
-  }
 
   const scenePlan = result.scenePlan as ScenePlan;
   const roles = new Set(scenePlan.objects.map((o) => o.role));

@@ -12,10 +12,6 @@ function createStoryboard(prompt: string): Storyboard {
 let animatorCalls = 0;
 let sandboxCalls = 0;
 
-async function promptClassifierNode(_state: StudioStateValue) {
-  return {};
-}
-
 async function directorNode(state: StudioStateValue) {
   return {
     storyboard: createStoryboard(state.prompt)
@@ -69,7 +65,6 @@ async function criticNode(_state: StudioStateValue) {
 
 async function run() {
   const graph = createStudioGraph({
-    promptClassifier: promptClassifierNode,
     director: directorNode,
     scenePlanner: scenePlannerNode,
     sceneRefinement: sceneRefinementNode,

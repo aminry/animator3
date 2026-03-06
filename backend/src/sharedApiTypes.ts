@@ -1,8 +1,7 @@
 import type { LottieJSON } from "./types";
 import type { Storyboard } from "./directorAgent";
 import type { StoryboardBeat, StoryboardV2 } from "./storyboardTypes";
-import type { ScenePlan, AnimationMode } from "./scenePlan";
-import type { PromptClassification } from "./promptClassifierAgent";
+import type { ScenePlan } from "./scenePlan";
 import type { CriticResult } from "./criticAgent";
 
 /**
@@ -39,10 +38,8 @@ export interface StudioSummary {
   errorLogs: string[];
   lottieMetrics?: LottieMetricsSummary;
   critique?: string;
-  criticResult?: CriticResult;  // <-- add this line
+  criticResult?: CriticResult;
   attemptCount: number;
-  mode?: AnimationMode | null;
-  promptClassification?: PromptClassification | null;
 }
 
 export type { StoryboardBeat, StoryboardV2, ScenePlan };

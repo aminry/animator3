@@ -83,26 +83,27 @@ Low-level Lottie builder, no DOM/LLM dependencies:
 
 ### AI Agent Pipeline (`backend/src/`)
 
-Built on **LangGraph** (`@langchain/langgraph`). The graph runs sequentially with conditional retry loops:
+Built on **LangGraph** (`@langchain/langgraph`). The graph runs sequentially with conditional retry loops. There is **no mode classification** — every prompt is handled creatively and freely:
 
 ```
-promptClassifier → director → scenePlanner → animator → sandbox
-                                                           ↓ (error → animator, up to 5x)
-                                                        renderer → critic
-                                                                     ↓ (REJECT → sceneRefinement → animator, up to 5x)
-                                                                    END
+director → scenePlanner → animator → sandbox
+                                        ↓ (error → animator, up to 5x)
+                                     renderer → critic
+                                                  ↓ (REJECT → sceneRefinement → animator, up to 5x)
+                                                 END
 ```
 
 | Agent/Node | File | Role |
 |-----------|------|------|
-| `PromptClassifierAgent` | `promptClassifierAgent.ts` | Classifies prompt into `AnimationMode` + target duration |
-| `DirectorAgent` | `directorAgent.ts` | Creates storyboard JSON (vibe, colorPalette, timeline) |
-| `ScenePlannerAgent` | `scenePlannerAgent.ts` | Produces structured `ScenePlan` (objects, keyframes) |
+| `DirectorAgent` | `directorAgent.ts` | Creates storyboard JSON (vibe, colorPalette, timeline, beats) — open-ended, no templates |
+| `ScenePlannerAgent` | `scenePlannerAgent.ts` | Produces structured `ScenePlan` (objects, keyframes) using visual reasoning — no mode rules |
 | `AnimatorAgent` | `animatorAgent.ts` | Generates MotionScript TypeScript from storyboard + scene plan |
 | Sandbox | `sandboxRunner.ts` / `sandbox-worker.ts` | Forks a child process, transpiles TS → JS with `ts.transpileModule`, runs in `vm2` sandbox, returns Lottie JSON |
 | Renderer | `renderer.ts` / `browserRenderer.ts` | Uses Puppeteer to render Lottie frames as base64 PNGs |
 | `CriticAgent` | `criticAgent.ts` | Multimodal LLM: evaluates rendered frames, returns PASS/REJECT + structured issues |
 | `SceneRefinementAgent` | `sceneRefinementAgent.ts` | Refines `ScenePlan` based on critic feedback before retry |
+
+> Note: `promptClassifierAgent.ts` still exists in the repo but is no longer wired into the pipeline. The system is fully prompt-driven with no mode routing.
 
 **Orchestrator wiring:** `orchestrator.ts` defines `StudioState` (LangGraph `Annotation.Root`), `createStudioNodes()`, and `createStudioGraph()`. The singleton `studioGraph` is exported and used by `orchestratorServer.ts`.
 

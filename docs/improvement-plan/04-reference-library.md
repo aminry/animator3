@@ -78,9 +78,184 @@ The reference library serves three key functions:
 
 ## Curation Process
 
-### Manual Curation (Recommended for Initial Set)
+### Automated Curation (Recommended)
 
-**Goal**: 50-100 high-quality, diverse animations
+**Goal**: 100 high-quality, diverse animations using fully automated pipeline
+
+**Project**: Standalone `reference-library-generator` at `/Users/amin/repo/animator3/reference-library-generator/`
+
+**Approach**: Python-based project that discovers, analyzes, filters, and curates animations with zero manual intervention.
+
+#### Pipeline Stages
+
+1. **Collection**: LottieFiles API scraping with intelligent search
+2. **Quality Analysis**: Automated complexity scoring and filtering
+3. **Frame Rendering**: Generate 5 preview frames per animation (Puppeteer + lottie-web)
+4. **Metadata Generation**: InternVL3_5-powered rich metadata (title, description, tags)
+5. **Deduplication**: Visual similarity filtering to remove duplicates
+6. **Embedding Generation**: CLIP embeddings for semantic search
+7. **Library Building**: Output ready-to-import reference library
+
+#### Quality Strategy: Conservative
+
+High quality thresholds to ensure only the best animations:
+
+**Complexity Filters**:
+```yaml
+filters:
+  complexity:
+    min_score: 0.6        # 60% minimum (higher than default 0.4)
+    
+  technical:
+    min_layers: 5         # At least 5 layers (higher than default 3)
+    min_duration: 2.0     # At least 2 seconds
+    max_duration: 15.0    # Max 15 seconds
+    min_animated_properties: 3
+    max_file_size_kb: 300 # Performance limit
+  
+  visual:
+    min_color_diversity: 3    # At least 3 distinct colors
+    min_spatial_coverage: 0.2 # Use at least 20% of canvas
+    reject_blank_frames: true
+    
+  metadata_quality:
+    min_llm_quality_score: 7.0  # Only animations rated 7.0+ by LLM
+```
+
+**Source Configuration** (LottieFiles API only):
+```yaml
+sources:
+  lottiefiles:
+    enabled: true
+    search_queries:
+      - tags: ["minimal", "professional"]
+        limit: 35
+      - tags: ["smooth", "modern"]
+        limit: 35
+      - trending: true
+        min_likes: 50
+        limit: 30
+    filters:
+      license: ["free", "cc0"]
+      min_likes: 20  # Higher quality threshold
+      
+  github:
+    enabled: false  # Disabled for initial run
+    
+  codepen:
+    enabled: false  # Disabled for initial run
+```
+
+#### Running the Pipeline
+
+**Setup**:
+```bash
+cd /Users/amin/repo/animator3/reference-library-generator
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env with OLLAMA settings
+```
+
+**Generate library**:
+```bash
+# Full automated run - generates 100 animations
+python cli.py generate --target 100 --output ./output
+
+# Monitor progress with detailed logging
+python cli.py generate --target 100 --output ./output --verbose
+
+# Resume from checkpoint if interrupted
+python cli.py generate --resume --checkpoint ./cache/checkpoint.json
+```
+
+**Update existing library**:
+```bash
+# Add more animations to existing library
+python cli.py update --library ../backend/reference-library --target 50
+```
+
+#### Integration with Backend
+
+After generation completes:
+
+```bash
+# Copy generated library to backend
+cp -r output/reference-library ../backend/
+
+# Or create symlink for development
+ln -s ../reference-library-generator/output/reference-library ../backend/reference-library
+```
+
+**Verify integration**:
+```typescript
+// backend/src/referenceLibrary.ts
+const library = new ReferenceLibrary('./reference-library');
+const results = await library.search('bouncing ball animation', 3);
+console.log(`Found ${results.length} similar animations`);
+```
+
+#### Metadata Generation with InternVL3_5
+
+The pipeline uses InternVL3_5 (via Ollama) to generate rich, accurate metadata:
+
+**Process**:
+1. Render 5 key frames from each animation
+2. Send frames to InternVL3_5 with structured prompt
+3. LLM analyzes visual content and generates:
+   - Descriptive title
+   - Detailed description of animation and techniques
+   - 10-15 relevant tags (subject, style, motion, colors, use cases)
+   - Style classification (minimal/bold/playful/corporate/abstract)
+   - Motion patterns identified
+   - Quality score (1-10)
+   - Use case suggestions
+
+**Configuration** (`.env`):
+```env
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=blaifa/InternVL3_5:4B
+VISION_MODEL_ENABLED=true
+```
+
+**Fallback**: If Ollama unavailable, uses rule-based metadata extraction from Lottie JSON structure.
+
+#### Output Structure
+
+The generator produces a ready-to-use library:
+
+```
+output/reference-library/
+├── animations/           # 100 Lottie JSON files (00001.json - 00100.json)
+├── frames/              # 5 preview frames per animation
+├── metadata/            # Rich metadata JSON for each animation
+├── embeddings/          # CLIP embeddings (image + text)
+├── index.json          # Master index with all animation references
+└── stats.json          # Library statistics and quality metrics
+```
+
+**Time estimate**: 4-8 hours for 100 animations (fully automated, unattended)
+
+#### Quality Assurance
+
+The pipeline includes automatic quality checks:
+
+- **Lottie validation**: Ensures valid JSON structure
+- **Render test**: Verifies animation renders without errors
+- **Complexity scoring**: Filters animations below threshold
+- **Visual deduplication**: Removes near-identical animations (>95% similarity)
+- **Metadata validation**: Ensures LLM-generated metadata meets quality standards
+
+**Success rate**: Target 100 animations from ~150-200 candidates after filtering
+
+### Manual Curation (Optional Fallback)
+
+**Use case**: When automation fails or for highly specialized animations
+
+**Goal**: 20-50 curated animations
 
 **Process**:
 
@@ -112,39 +287,9 @@ The reference library serves three key functions:
    - Check diversity of collection
    - Remove duplicates or low-quality entries
 
-**Time estimate**: 1-2 weeks for 50-100 animations
+**Time estimate**: 1-2 weeks for 20-50 animations
 
-### Automated Augmentation (Scale to 500+)
-
-**Goal**: Expand library using manual set as seed
-
-**Process**:
-
-1. **Use manual set as quality baseline**
-   - Extract patterns from high-quality set
-   - Define complexity thresholds
-
-2. **Programmatic search**
-   - Use LottieFiles API to search programmatically
-   - Filter by tags, complexity metrics
-   - Auto-download candidates
-
-3. **Auto-filter by complexity**
-   ```javascript
-   // Example metrics
-   const isComplex = (lottie) => {
-     return lottie.layers.length >= 5 &&
-            lottie.op >= 60 && // Duration (frames)
-            countAnimatedProperties(lottie) >= 10;
-   };
-   ```
-
-4. **Human review for final selection**
-   - Review auto-selected animations
-   - Accept or reject based on quality
-   - Annotate accepted animations
-
-**Time estimate**: Ongoing, ~100 animations/week with automation
+**Integration**: Place manually curated animations in same structure as automated output, then run embedding generator to create search indices.
 
 ## Quality Criteria
 
