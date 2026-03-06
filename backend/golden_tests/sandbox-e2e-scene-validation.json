@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "objectCount": 1,
+  "lottieLayerCount": 1,
+  "sceneKeyframeCount": 2,
+  "lottieKeyframeCount": 0,
+  "sceneDurationSeconds": 3,
+  "lottieDurationSeconds": 3,
+  "sceneMaxKeyframeTimeSeconds": 3,
+  "lottieMaxKeyframeTimeSeconds": 0,
+  "issues": [
+    {
+      "type": "keyframe_count_mismatch",
+      "severity": "warning",
+      "message": "ScenePlan defines keyframes but the Lottie transform data appears static.",
+      "details": {
+        "sceneKeyframeCount": 2,
+        "lottieKeyframeCount": 0
+      }
+    }
+  ]
+}

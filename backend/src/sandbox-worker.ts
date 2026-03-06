@@ -91,8 +91,6 @@ function handleRequest(message: SandboxRequestMessage): void {
       message: messageText,
       stack: error && typeof error.stack === 'string' ? error.stack : undefined
     });
-  } finally {
-    process.exit(0);
   }
 }
 

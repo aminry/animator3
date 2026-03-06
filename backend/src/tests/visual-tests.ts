@@ -767,6 +767,143 @@ function test23_MotionScriptStaggeredText(): void {
   saveAnimation(stage.getAnimation(), 'test23-motionscript-staggered-text.json');
 }
 
+function test24_MotionScriptAllShapes(): void {
+  const duration = 3;
+  const fps = 30;
+  const stage = new Stage(800, 600, duration, fps);
+
+  const rect = stage.addShape('rectangle', {
+    width: 120,
+    height: 80,
+    fillColor: [1, 0, 0]
+  });
+  rect.getLayer().setPosition(200, 150);
+
+  const rounded = stage.addShape('roundedRectangle', {
+    width: 140,
+    height: 90,
+    cornerRadius: 24,
+    fillColor: [0, 1, 0]
+  });
+  rounded.getLayer().setPosition(600, 150);
+
+  const ellipse = stage.addShape('ellipse', {
+    radiusX: 80,
+    radiusY: 40,
+    fillColor: [0, 0.6, 1]
+  });
+  ellipse.getLayer().setPosition(200, 300);
+
+  const polygon = stage.addShape('polygon', {
+    points: 6,
+    radius: 60,
+    fillColor: [1, 0.5, 0]
+  });
+  polygon.getLayer().setPosition(600, 300);
+
+  const star = stage.addShape('star', {
+    points: 5,
+    outerRadius: 70,
+    innerRadius: 35,
+    fillColor: [1, 0.84, 0]
+  });
+  star.getLayer().setPosition(400, 450);
+
+  const circle = stage.addShape('circle', {
+    radius: 40,
+    fillColor: [0.2, 0.9, 0.9]
+  });
+  circle.getLayer().setPosition(400, 300);
+
+  saveAnimation(stage.getAnimation(), 'test24-motionscript-all-shapes.json');
+}
+
+function test25_MotionScriptColorAndEasing(): void {
+  const duration = 3;
+  const fps = 30;
+  const stage = new Stage(800, 600, duration, fps);
+
+  const shapeElement = stage.addShape('circle', {
+    radius: 60,
+    fillColor: [1, 0, 0]
+  });
+  shapeElement.getLayer().setPosition(200, 300);
+  shapeElement.animate({
+    props: {
+      position: { from: [200, 300], to: [600, 300] },
+      fillColor: { to: [0, 0, 1] }
+    },
+    easing: 'easeInOut',
+    delay: 0
+  });
+
+  const textElement = stage.addText('Color & Easing', {
+    fontSize: 40,
+    fontFamily: 'Arial',
+    color: [1, 1, 1],
+    justification: 2
+  });
+  textElement.getLayer().setPosition(400, 120);
+  textElement.animate({
+    props: {
+      opacity: { from: 0, to: 100 },
+      color: { to: [0.2, 0.8, 1] }
+    },
+    easing: [0.2, 0.8, 0.2, 1],
+    delay: 0
+  });
+
+  saveAnimation(stage.getAnimation(), 'test25-motionscript-color-and-easing.json');
+}
+
+function test26_MotionScriptExplicitDurations(): void {
+  const duration = 4;
+  const fps = 30;
+  const stage = new Stage(800, 600, duration, fps);
+
+  const circleElement = stage.addShape('circle', {
+    radius: 40,
+    fillColor: [0.2, 0.8, 1]
+  });
+  circleElement.getLayer().setPosition(200, 150);
+  circleElement.animate({
+    props: {
+      position: { from: [200, 150], to: [600, 150] }
+    },
+    duration: 1,
+    delay: 0
+  });
+
+  const rectElement = stage.addShape('rectangle', {
+    width: 120,
+    height: 80,
+    fillColor: [1, 0, 0]
+  });
+  rectElement.getLayer().setPosition(200, 300);
+  rectElement.animate({
+    props: {
+      opacity: { from: 0, to: 100 }
+    },
+    time: { start: 1, end: 3 }
+  });
+
+  const textElement = stage.addText('Clamped', {
+    fontSize: 32,
+    fontFamily: 'Arial',
+    color: [1, 1, 1],
+    justification: 2
+  });
+  textElement.getLayer().setPosition(400, 450);
+  textElement.animate({
+    props: {
+      opacity: { from: 0, to: 100 }
+    },
+    time: { start: 3, end: 6 }
+  });
+
+  saveAnimation(stage.getAnimation(), 'test26-motionscript-explicit-durations.json');
+}
+
 /**
  * Run all tests
  */
@@ -799,6 +936,9 @@ function runAllTests(): void {
     test21_SpringPhysicsCircle();
     test22_EasingCurves();
     test23_MotionScriptStaggeredText();
+    test24_MotionScriptAllShapes();
+    test25_MotionScriptColorAndEasing();
+    test26_MotionScriptExplicitDurations();
 
     console.log('\n✅ All tests completed successfully!');
     console.log(`\n📁 Generated ${fs.readdirSync(OUTPUT_DIR).length} Lottie JSON files in: ${OUTPUT_DIR}`);

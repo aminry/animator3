@@ -59,7 +59,32 @@ class MockLLMClient implements LLMClient {
         }
       ],
       suggestion:
-        'Increase text brightness or darken the background to achieve at least 4.5:1 contrast and add more spooky elements (e.g., ghosts, bats).' 
+        'Increase text brightness or darken the background to achieve at least 4.5:1 contrast and add more spooky elements (e.g., ghosts, bats).',
+      fixes: [
+        {
+          target: {
+            role: 'headline-text',
+            layer: 'foreground',
+            objectId: 'headline-1'
+          },
+          action: 'adjust-color-contrast',
+          reason:
+            'Headline text contrast is too low; adjust colors to meet accessibility contrast ratios.',
+          details:
+            'Brighten the headline text color and/or darken the background behind it until the contrast is clearly readable in all frames.'
+        },
+        {
+          target: {
+            role: 'background',
+            layer: 'background'
+          },
+          action: 'increase-complexity',
+          reason:
+            'Background feels flat and not very spooky; add themed accents such as bats or ghosts.',
+          details:
+            'Introduce a few subtle spooky elements (e.g., ghost silhouettes, bats) moving slowly in the background to reinforce the Halloween theme.'
+        }
+      ]
     };
 
     return JSON.stringify(payload);
@@ -97,8 +122,30 @@ async function testSpookyHalloweenCriticAgent(): Promise<void> {
     throw new Error('Expected critic suggestion to reference improving contrast or accessibility');
   }
 
+  if (!result.fixes || result.fixes.length < 2) {
+    throw new Error('Expected critic result to contain at least two structured fixes');
+  }
+
+  const headlineFix = result.fixes.find(
+    fix => fix.target.role === 'headline-text' && fix.action === 'adjust-color-contrast'
+  );
+  if (!headlineFix) {
+    throw new Error('Expected at least one fix targeting headline-text with adjust-color-contrast action');
+  }
+
+  if (!headlineFix.reason.toLowerCase().includes('contrast')) {
+    throw new Error('Expected headline-text fix reason to mention contrast');
+  }
+
+  const backgroundFix = result.fixes.find(
+    fix => fix.target.role === 'background' && fix.action === 'increase-complexity'
+  );
+  if (!backgroundFix) {
+    throw new Error('Expected at least one fix targeting background with increase-complexity action');
+  }
+
   console.log(
-    '✓ Critic Agent (Visual QA) flags low-contrast spooky Halloween frames as FAIL with actionable suggestions'
+    '✓ Critic Agent (Visual QA) flags low-contrast spooky Halloween frames as FAIL with actionable suggestions and structured fixes'
   );
 }
 

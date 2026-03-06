@@ -202,6 +202,59 @@ export class ShapeLayer extends Layer {
     return this;
   }
 
+  animateFillColor(
+    from: [number, number, number] | null,
+    to: [number, number, number],
+    startFrame: number,
+    endFrame: number,
+    easing?: any
+  ): this {
+    const group = this.shapes.find(shape => shape.ty === 'gr' && Array.isArray((shape as any).it));
+    if (!group || !(group as any).it) {
+      return this;
+    }
+
+    const items = (group as any).it as ShapeItem[];
+    const fill = items.find(item => item.ty === 'fl');
+    if (!fill) {
+      return this;
+    }
+
+    let startColor: [number, number, number];
+    if (from) {
+      startColor = from;
+    } else if ((fill as any).c && (fill as any).c.k !== undefined) {
+      const k = (fill as any).c.k;
+      if (Array.isArray(k)) {
+        const first = k[0];
+        if (typeof first === 'number' && k.length >= 3) {
+          startColor = [k[0], k[1], k[2]];
+        } else if (first && Array.isArray(first.s) && first.s.length >= 3) {
+          startColor = [first.s[0], first.s[1], first.s[2]];
+        } else {
+          startColor = to;
+        }
+      } else {
+        startColor = to;
+      }
+    } else {
+      startColor = to;
+    }
+
+    const startValue = [startColor[0], startColor[1], startColor[2], 1];
+    const endValue = [to[0], to[1], to[2], 1];
+    const property = new Property<number[]>(startValue);
+
+    if (easing) {
+      property.animateToWithEasing(endFrame, endValue, startFrame, easing);
+    } else {
+      property.animateTo(endFrame, endValue, startFrame);
+    }
+
+    (fill as any).c = property.toJSON() as any;
+    return this;
+  }
+
   protected getLayerType(): number {
     return 4; // Shape layer
   }
@@ -350,6 +403,36 @@ export class TextLayer extends Layer {
   setStroke(r: number, g: number, b: number, width: number): this {
     this.textData.d.k[0].s.sc = [r, g, b];
     this.textData.d.k[0].s.sw = width;
+    return this;
+  }
+
+  getColor(): [number, number, number] {
+    const first = this.textData.d.k[0];
+    const fc = first?.s?.fc;
+    if (Array.isArray(fc) && fc.length >= 3) {
+      return [fc[0], fc[1], fc[2]];
+    }
+    return [0, 0, 0];
+  }
+
+  animateColor(
+    from: [number, number, number],
+    to: [number, number, number],
+    startFrame: number,
+    endFrame: number,
+    _easing?: any
+  ): this {
+    const base = this.textData.d.k[0];
+    const baseState = base.s;
+
+    const startState = { ...baseState, fc: from };
+    const endState = { ...baseState, fc: to };
+
+    this.textData.d.k = [
+      { s: startState, t: startFrame },
+      { s: endState, t: endFrame }
+    ];
+
     return this;
   }
 

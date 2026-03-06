@@ -10,6 +10,7 @@
     "test:update": "UPDATE_GOLDEN=1 node dist/tests/visual-tests.js",
     "test:build": "tsc && node dist/tests/visual-tests.js",
     "test:build:update": "UPDATE_GOLDEN=1 tsc && node dist/tests/visual-tests.js",
+    "test:all-e2e": "tsc && node dist/tests/sandbox-e2e.js && node dist/tests/render-e2e.js && node dist/tests/director-e2e.js && node dist/tests/animator-e2e.js && node dist/tests/critic-e2e.js && node dist/tests/orchestrator-e2e.js && node dist/tests/orchestrator-critical-flows.js && node dist/tests/assetProcessor-e2e.js",
     "example": "tsc && node dist/example.js",
     "serve": "node serve.js",
     "view": "node serve.js",
@@ -20,9 +21,12 @@
     "test:animator-e2e": "tsc && node dist/tests/animator-e2e.js",
     "test:critic-e2e": "tsc && node dist/tests/critic-e2e.js",
     "test:orchestrator-e2e": "tsc && node dist/tests/orchestrator-e2e.js",
+    "test:orchestrator-critical-flows": "tsc && node dist/tests/orchestrator-critical-flows.js",
     "test:asset-processor-e2e": "tsc && node dist/tests/assetProcessor-e2e.js",
+    "test:storyboard": "tsc && node dist/tests/storyboardTypes-test.js",
     "start:sandbox": "node dist/sandboxServer.js",
-    "start:renderer": "node dist/rendererServer.js"
+    "start:renderer": "node dist/rendererServer.js",
+    "start:orchestrator": "node dist/orchestratorServer.js"
   },
   "keywords": [
     "lottie",
@@ -41,7 +45,8 @@
   "dependencies": {
     "@langchain/langgraph": "^1.0.2",
     "cheerio": "^1.1.2",
-    "puppeteer": "^24.31.0",
+    "dotenv": "^16.4.5",
+    "puppeteer": "^19.0.0",
     "svgo": "^4.0.0",
     "vm2": "^3.10.0"
   }

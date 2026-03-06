@@ -4,6 +4,7 @@ import { ShapeBuilder } from './shapes';
 import { ColorRGB } from './types';
 import { generateKeyframes, SpringPhysicsConfig, TimeValuePair } from './physics';
 import { Property } from './Property';
+import { NamedEasing, CubicBezierDefinition } from './easing';
 
 /**
  * High-level MotionScript API built on top of the core Lottie builder.
@@ -13,6 +14,8 @@ import { Property } from './Property';
  * Animation, Layer, Property, and physics utilities.
  */
 
+type Easing = NamedEasing | CubicBezierDefinition;
+
 // Shared style types
 export interface TextStyle {
   fontSize?: number;
@@ -21,7 +24,7 @@ export interface TextStyle {
   justification?: 0 | 1 | 2;
 }
 
-export type ShapeType = 'circle' | 'rectangle';
+export type ShapeType = 'circle' | 'rectangle' | 'roundedRectangle' | 'ellipse' | 'polygon' | 'star';
 
 export interface ShapeStyle {
   fillColor?: ColorRGB;
@@ -30,6 +33,12 @@ export interface ShapeStyle {
   width?: number;
   height?: number;
   radius?: number; // for circle convenience
+  radiusX?: number;
+  radiusY?: number;
+  cornerRadius?: number;
+  points?: number;
+  innerRadius?: number;
+  outerRadius?: number;
 }
 
 export interface MotionProps {
@@ -37,12 +46,22 @@ export interface MotionProps {
   opacity?: { from?: number; to: number };
   scale?: { from?: [number, number]; to: [number, number] };
   rotation?: { from?: number; to: number };
+  fillColor?: { from?: ColorRGB; to: ColorRGB };
+  color?: { from?: ColorRGB; to: ColorRGB };
+}
+
+export interface MotionTiming {
+  start?: number;
+  end?: number;
 }
 
 export interface MotionConfig {
   props: MotionProps;
   spring?: SpringPhysicsConfig;
+  easing?: Easing;
   delay?: number; // seconds
+  duration?: number;
+  time?: MotionTiming;
 }
 
 export interface StaggerConfig {
@@ -66,9 +85,33 @@ export class MotionElement {
    * or spring physics generated via `generateKeyframes`.
    */
   animate(config: MotionConfig): this {
-    const { props, spring, delay = 0 } = config;
-    const fps = this.stage.getAnimation().getFrameRate();
-    const startFrame = this.stage.getAnimation().timeToFrame(delay);
+    const { props, spring, easing, delay = 0, duration, time } = config;
+    const animation = this.stage.getAnimation();
+    const fps = animation.getFrameRate();
+    const stageDurationSeconds = this.stage.getDurationSeconds();
+
+    let startSeconds =
+      typeof time?.start === 'number' ? time.start : delay;
+
+    let endSeconds: number;
+    if (typeof time?.end === 'number') {
+      endSeconds = time.end;
+    } else if (typeof duration === 'number') {
+      endSeconds = startSeconds + duration;
+    } else {
+      endSeconds = stageDurationSeconds;
+    }
+
+    if (endSeconds > stageDurationSeconds) {
+      endSeconds = stageDurationSeconds;
+    }
+    if (endSeconds < startSeconds) {
+      endSeconds = startSeconds;
+    }
+
+    const startFrame = animation.timeToFrame(startSeconds);
+    const endFrame = animation.timeToFrame(endSeconds);
+    const easingToUse: Easing | undefined = spring ? undefined : easing;
 
     // Position animation
     if (props.position) {
@@ -89,8 +132,12 @@ export class MotionElement {
         });
 
         (this.layer as any).position = property;
+      } else if (easingToUse) {
+        const property = new Property<[number, number]>([from[0], from[1]]);
+        property.animateToWithEasing(endFrame, [to[0], to[1]], startFrame, easingToUse);
+        (this.layer as any).position = property;
       } else {
-        const endFrame = this.stage.getAnimation().timeToFrame(this.stage.getDurationSeconds());
+        (this.layer as any).setPosition(from[0], from[1]);
         (this.layer as any).animatePosition(endFrame, to[0], to[1], startFrame);
       }
     }
@@ -99,27 +146,60 @@ export class MotionElement {
     if (props.opacity) {
       const from = props.opacity.from ?? 0;
       const to = props.opacity.to;
-      const endFrame = this.stage.getAnimation().timeToFrame(this.stage.getDurationSeconds());
-      (this.layer as any).setOpacity(from);
-      (this.layer as any).animateOpacity(endFrame, to, startFrame);
+      if (easingToUse) {
+        const property = new Property<number>(from);
+        property.animateToWithEasing(endFrame, to, startFrame, easingToUse);
+        (this.layer as any).opacity = property;
+      } else {
+        (this.layer as any).setOpacity(from);
+        (this.layer as any).animateOpacity(endFrame, to, startFrame);
+      }
     }
 
     // Scale animation
     if (props.scale) {
       const from = props.scale.from ?? [100, 100];
       const to = props.scale.to;
-      const endFrame = this.stage.getAnimation().timeToFrame(this.stage.getDurationSeconds());
-      (this.layer as any).setScale(from[0], from[1]);
-      (this.layer as any).animateScale(endFrame, to[0], to[1], startFrame);
+      if (easingToUse) {
+        const property = new Property<[number, number]>([from[0], from[1]]);
+        property.animateToWithEasing(endFrame, [to[0], to[1]], startFrame, easingToUse);
+        (this.layer as any).scale = property;
+      } else {
+        (this.layer as any).setScale(from[0], from[1]);
+        (this.layer as any).animateScale(endFrame, to[0], to[1], startFrame);
+      }
     }
 
     // Rotation animation
     if (props.rotation) {
       const from = props.rotation.from ?? 0;
       const to = props.rotation.to;
-      const endFrame = this.stage.getAnimation().timeToFrame(this.stage.getDurationSeconds());
-      (this.layer as any).setRotation(from);
-      (this.layer as any).animateRotation(endFrame, to, startFrame);
+      if (easingToUse) {
+        const property = new Property<number>(from);
+        property.animateToWithEasing(endFrame, to, startFrame, easingToUse);
+        (this.layer as any).rotation = property;
+      } else {
+        (this.layer as any).setRotation(from);
+        (this.layer as any).animateRotation(endFrame, to, startFrame);
+      }
+    }
+
+    if (props.fillColor && this.layer instanceof ShapeLayer) {
+      const shapeLayer = this.layer as ShapeLayer;
+      shapeLayer.animateFillColor(
+        props.fillColor.from ?? null,
+        props.fillColor.to,
+        startFrame,
+        endFrame,
+        easingToUse
+      );
+    }
+
+    if (props.color && this.layer instanceof TextLayer) {
+      const textLayer = this.layer as TextLayer;
+      const baseColor = textLayer.getColor();
+      const fromColor = props.color.from ?? baseColor;
+      textLayer.animateColor(fromColor, props.color.to, startFrame, endFrame, easingToUse);
     }
 
     return this;
@@ -230,6 +310,34 @@ export class Stage {
     if (type === 'circle') {
       const radius = style.radius ?? 50;
       shape = ShapeBuilder.circle('Circle', radius * 2);
+    } else if (type === 'ellipse') {
+      const width =
+        typeof style.radiusX === 'number'
+          ? style.radiusX * 2
+          : typeof style.radius === 'number'
+          ? style.radius * 2
+          : style.width ?? 100;
+      const height =
+        typeof style.radiusY === 'number'
+          ? style.radiusY * 2
+          : typeof style.radius === 'number'
+          ? style.radius * 2
+          : style.height ?? 100;
+      shape = ShapeBuilder.ellipse('Ellipse', width, height);
+    } else if (type === 'roundedRectangle') {
+      const width = style.width ?? 100;
+      const height = style.height ?? 100;
+      const cornerRadius = style.cornerRadius ?? 20;
+      shape = ShapeBuilder.rectangle('Rounded Rectangle', width, height, [0, 0], cornerRadius);
+    } else if (type === 'polygon') {
+      const points = style.points ?? 5;
+      const radius = style.radius ?? 50;
+      shape = ShapeBuilder.polygon('Polygon', points, radius);
+    } else if (type === 'star') {
+      const points = style.points ?? 5;
+      const outerRadius = style.outerRadius ?? style.radius ?? 50;
+      const innerRadius = style.innerRadius ?? outerRadius / 2;
+      shape = ShapeBuilder.star('Star', points, outerRadius, innerRadius);
     } else {
       const width = style.width ?? 100;
       const height = style.height ?? 100;

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { BuildLottieRequestBody, BuildLottieResponse } from "@motiongen/sdk";
 
 const DEFAULT_BACKEND_URL = "http://localhost:7070";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json().catch(() => null as unknown);
-    const code = (body as any)?.code;
+    const body = (await request.json().catch(() => null as unknown)) as
+      | BuildLottieRequestBody
+      | null;
+    const code = body?.code;
 
     if (typeof code !== "string") {
       return NextResponse.json(
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({ code })
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as BuildLottieResponse;
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {

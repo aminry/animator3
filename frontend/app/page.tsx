@@ -2,6 +2,7 @@
 
 import { useState, ChangeEvent } from "react";
 import TestStudioStore from "../src/components/TestStudioStore";
+import type { BuildLottieResponse } from "@motiongen/sdk";
 
 const DEFAULT_CODE = `import { Motion } from "@motiongen/sdk";
 
@@ -22,18 +23,7 @@ text.animate({
 export default stage.toJSON();
 `;
 
-interface BuildResultOk {
-  ok: true;
-  lottie: unknown;
-}
-
-interface BuildResultError {
-  ok: false;
-  errorType?: string;
-  message?: string;
-}
-
-type BuildResult = BuildResultOk | BuildResultError;
+type BuildResult = BuildLottieResponse;
 
 export default function HomePage() {
   const [code, setCode] = useState<string>(DEFAULT_CODE);

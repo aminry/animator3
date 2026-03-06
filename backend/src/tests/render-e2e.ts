@@ -54,16 +54,16 @@ function postJson(port: number, requestPath: string, payload: any): Promise<Json
   });
 }
 
-async function testRenderFrames(port: number): Promise<void> {
-  const lottiePath = path.join(process.cwd(), 'golden_tests', 'test2-animated-circle.json');
+async function runVisualTest(port: number, testName: string, lottieFile: string, timestamps: number[], checkProgression = true): Promise<void> {
+  console.log(`\n   🧪 Testing: ${testName} (${lottieFile})`);
+  
+  const lottiePath = path.join(process.cwd(), 'golden_tests', lottieFile);
 
   if (!fs.existsSync(lottiePath)) {
     throw new Error(`Missing Lottie golden file at ${lottiePath}`);
   }
 
   const lottieJson = JSON.parse(fs.readFileSync(lottiePath, 'utf8'));
-
-  const timestamps = [0, 1.5, 2.5];
 
   const response = await postJson(port, '/render-frames', {
     lottie_json: lottieJson,
@@ -84,13 +84,18 @@ async function testRenderFrames(port: number): Promise<void> {
     throw new Error(`Expected ${timestamps.length} images, got ${images.length}`);
   }
 
-  const outputDir = path.join(process.cwd(), 'output', 'renderer-e2e');
+  const outputDir = path.join(process.cwd(), 'output', 'renderer-e2e', testName.replace(/\s+/g, '_'));
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const goldenDir = path.join(process.cwd(), 'golden_tests');
+  const goldenDir = path.join(process.cwd(), 'golden_tests', 'renderer-e2e', testName.replace(/\s+/g, '_'));
+  if (!fs.existsSync(goldenDir)) {
+      fs.mkdirSync(goldenDir, { recursive: true });
+  }
+
   const pngSignatureHex = '89504e470d0a1a0a';
+  const updateGolden = process.env.UPDATE_GOLDEN === '1';
 
   images.forEach((b64, index) => {
     if (typeof b64 !== 'string' || !b64.length) {
@@ -111,22 +116,34 @@ async function testRenderFrames(port: number): Promise<void> {
     fs.writeFileSync(outputPath, buffer);
 
     const goldenPath = path.join(goldenDir, `frame-${index}.png`);
+    
+    if (updateGolden) {
+      fs.writeFileSync(goldenPath, buffer);
+      console.log(`      ⚠ Updated golden file: ${goldenPath}`);
+    }
+
     if (!fs.existsSync(goldenPath)) {
-      throw new Error(`Missing PNG golden file at ${goldenPath}`);
+      // Auto-create golden if missing and we just ran successfully (first run behavior)
+      // Actually, if UPDATE_GOLDEN is not set, we should fail.
+      // But for new test, let's warn.
+      throw new Error(`Missing PNG golden file at ${goldenPath} (run with UPDATE_GOLDEN=1 to create)`);
     }
 
     const goldenBuffer = fs.readFileSync(goldenPath);
     if (goldenBuffer.length !== buffer.length || !goldenBuffer.equals(buffer)) {
-      throw new Error(`Rendered frame ${index} does not match golden PNG at ${goldenPath}`);
+      throw new Error(`Rendered frame ${index} does not match golden PNG at ${goldenPath} (run with UPDATE_GOLDEN=1 to update)`);
     }
   });
 
-  if (images[0] === images[1] && images[1] === images[2]) {
-    throw new Error('All rendered frames are identical; expected visual progression over time');
+  if (checkProgression && images.length > 1) {
+    // Check if all frames are identical
+    const allIdentical = images.every((img, i, arr) => i === 0 || img === arr[0]);
+    if (allIdentical) {
+        throw new Error('All rendered frames are identical; expected visual progression over time');
+    }
   }
 
-  console.log('✓ Renderer PNG frames match golden files');
-  console.log(`   Saved latest frames to: ${outputDir}`);
+  console.log('      ✓ Frames match golden files');
 }
 
 async function run(): Promise<void> {
@@ -136,7 +153,12 @@ async function run(): Promise<void> {
   console.log(`\n🎬 Running Renderer E2E tests against http://localhost:${port}/render-frames`);
 
   try {
-    await testRenderFrames(port);
+    // Existing test (circle)
+    await runVisualTest(port, 'Animated Circle', 'test2-animated-circle.json', [0, 1.5, 2.5]);
+    
+    // New test (text)
+    await runVisualTest(port, 'Text Layer', 'test13-text-layer.json', [0]);
+    await runVisualTest(port, 'MotionScript All Shapes', 'test24-motionscript-all-shapes.json', [0]);
 
     console.log('\n✅ Renderer E2E test passed');
   } catch (error) {

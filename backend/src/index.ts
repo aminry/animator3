@@ -33,6 +33,7 @@ export { Stage, Motion } from './motionscript';
 
 // Type definitions
 export * from './types';
+export * from './sharedApiTypes';
 
 // Convenience exports
 export {

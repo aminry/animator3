@@ -12,10 +12,24 @@ function createStoryboard(prompt: string): Storyboard {
 let animatorCalls = 0;
 let sandboxCalls = 0;
 
+async function promptClassifierNode(_state: StudioStateValue) {
+  return {};
+}
+
 async function directorNode(state: StudioStateValue) {
   return {
     storyboard: createStoryboard(state.prompt)
   };
+}
+
+async function scenePlannerNode(_state: StudioStateValue) {
+  return {};
+}
+
+async function sceneRefinementNode(_state: StudioStateValue) {
+  // For this E2E, we only care that the node exists and does not break the graph.
+  // Real refinement behavior is covered in dedicated agent tests.
+  return {};
 }
 
 async function animatorNode(state: StudioStateValue) {
@@ -55,7 +69,10 @@ async function criticNode(_state: StudioStateValue) {
 
 async function run() {
   const graph = createStudioGraph({
+    promptClassifier: promptClassifierNode,
     director: directorNode,
+    scenePlanner: scenePlannerNode,
+    sceneRefinement: sceneRefinementNode,
     animator: animatorNode,
     sandbox: sandboxNode,
     renderer: rendererNode,

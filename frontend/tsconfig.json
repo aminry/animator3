@@ -18,6 +18,11 @@
     "jsx": "react-jsx",
     "incremental": true,
     "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@motiongen/sdk": ["../backend/src"],
+      "@motiongen/sdk/*": ["../backend/src/*"]
+    },
     "plugins": [
       {
         "name": "next"

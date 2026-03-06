@@ -8,6 +8,7 @@ import {
   type LLMClientGenerateOptions,
   type Storyboard
 } from '../directorAgent';
+import type { CriticResult } from '../criticAgent';
 
 const FAKE_SDK_INTERFACE_DEFINITION = `
 declare module '@motiongen/sdk' {
@@ -24,6 +25,30 @@ declare module '@motiongen/sdk' {
 }
 `.trim();
 
+const criticResult: CriticResult = {
+  status: 'FAIL',
+  score: 65,
+  issues: [
+    {
+      severity: 'minor',
+      description:
+        'Background feels a bit flat; consider adding subtle spooky accents.'
+    }
+  ],
+  suggestion:
+    'Add a few subtle spooky accents in the background and slightly increase motion variety on the title.',
+  fixes: [
+    {
+      target: {
+        role: 'background',
+        layer: 'background'
+      },
+      action: 'increase-complexity',
+      reason: 'Background too flat; needs more spooky accents.'
+    }
+  ]
+};
+
 class MockLLMClient implements LLMClient {
   async generate(options: LLMClientGenerateOptions): Promise<string> {
     if (options.model !== ANIMATOR_MODEL) {
@@ -38,7 +63,7 @@ class MockLLMClient implements LLMClient {
       throw new Error('Animator agent did not inject the SDK interface definition (.d.ts) into the system prompt');
     }
 
-    if (!options.systemPrompt.includes('EXAMPLE 1: Simple title spring-in')) {
+    if (!options.systemPrompt.includes('EXAMPLE:')) {
       throw new Error('Animator agent system prompt must include few-shot examples');
     }
 
@@ -52,6 +77,14 @@ class MockLLMClient implements LLMClient {
 
     if (!options.userPrompt.includes('Spooky Halloween sale with playful ghosts and eerie atmosphere')) {
       throw new Error('Animator agent user prompt did not include the storyboard content');
+    }
+
+    if (!options.userPrompt.includes('CriticResult JSON:')) {
+      throw new Error('Animator agent user prompt did not include CriticResult JSON when criticResult was provided');
+    }
+
+    if (!options.userPrompt.includes('Background feels a bit flat; consider adding subtle spooky accents.')) {
+      throw new Error('Animator agent user prompt did not include critic feedback text');
     }
 
     return `
@@ -94,7 +127,10 @@ async function testSpookyHalloweenSaleAnimatorAgent(): Promise<void> {
 
   const code = await agent.generateMotionScript({
     storyboard,
-    sdkInterfaceDefinition: FAKE_SDK_INTERFACE_DEFINITION
+    scenePlan: undefined,
+    sdkInterfaceDefinition: FAKE_SDK_INTERFACE_DEFINITION,
+    originalPrompt: 'Spooky Halloween sale with playful ghosts and eerie atmosphere',
+    criticResult
   });
 
   if (!code.includes('stage.addText')) {
