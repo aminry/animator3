@@ -857,7 +857,7 @@ Output only valid TypeScript code, no markdown fences.
 #### 5. Critic Agent
 
 **File:** `criticAgent.ts`  
-**Model:** Llama 3.2 90B Vision  
+**Model:** meta-llama/llama-4-scout-17b-16e-instruct
 **Input:** User prompt + rendered frames (images) + Lottie metrics  
 **Output:** `CriticResult` with score, verdict, issues, and fixes
 
@@ -1138,16 +1138,16 @@ Output:
 Environment variables:
 ```bash
 GROQ_API_KEY=your_key_here
-MOTIONGEN_GROQ_DEFAULT_MODEL=llama-3.3-70b-versatile
-MOTIONGEN_GROQ_MODEL_GPT_OSS_70B=llama-3.3-70b-versatile
-MOTIONGEN_GROQ_MODEL_GPT_OSS_20B=llama-3.1-8b-instant
+MOTIONGEN_GROQ_DEFAULT_MODEL=openai/gpt-oss-120b
+MOTIONGEN_GROQ_MODEL_TEXT_MODEL=openai/gpt-oss-120b
+MOTIONGEN_GROQ_MODEL_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
 ```
 
 **Multimodal Request:**
 
 ```typescript
 await client.generate({
-  model: 'Llama 3.2 90B Vision',
+  model: 'meta-llama/llama-4-scout-17b-16e-instruct',
   systemPrompt: 'You are a critic...',
   userPrompt: 'Evaluate this animation',
   imageUrls: ['data:image/png;base64,...', ...],
@@ -1160,7 +1160,7 @@ await client.generate({
 
 ```json
 {
-  "model": "llama-3.2-90b-vision-preview",
+  "model": "meta-llama/llama-4-scout-17b-16e-instruct",
   "messages": [
     {
       "role": "system",
@@ -2336,9 +2336,9 @@ GROQ_API_KEY=your_api_key_here
 GROQ_API_BASE_URL=https://api.groq.com
 
 # Model Configuration
-MOTIONGEN_GROQ_DEFAULT_MODEL=llama-3.3-70b-versatile
-MOTIONGEN_GROQ_MODEL_GPT_OSS_70B=llama-3.3-70b-versatile
-MOTIONGEN_GROQ_MODEL_GPT_OSS_20B=llama-3.1-8b-instant
+MOTIONGEN_GROQ_DEFAULT_MODEL=openai/gpt-oss-120b
+MOTIONGEN_GROQ_MODEL_TEXT_MODEL=openai/gpt-oss-120b
+MOTIONGEN_GROQ_MODEL_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
 
 # Server Ports
 ORCHESTRATOR_PORT=3003
