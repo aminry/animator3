@@ -23,7 +23,7 @@ This document outlines how to integrate the InternVL3_5 vision-language model us
 ### Model Download
 
 ```bash
-ollama pull internvl3.5
+ollama pull blaifa/InternVL3_5:4B
 ```
 
 This downloads the InternVL3_5 model to your local machine.
@@ -41,7 +41,7 @@ ollama serve
 ### Testing the Model
 
 ```bash
-ollama run internvl3.5
+ollama run blaifa/InternVL3_5:4B
 ```
 
 Interact with the model to verify it's working.
@@ -80,7 +80,7 @@ class OllamaClient implements LLMClient {
 
 ```env
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=internvl3.5
+OLLAMA_MODEL=blaifa/InternVL3_5:4B
 VISION_MODEL_ENABLED=true
 ```
 

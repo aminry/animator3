@@ -18,7 +18,7 @@ This document provides a detailed 8-week implementation plan for all improvement
 
 **Week 1**:
 - [ ] Install Ollama on development machine
-- [ ] Pull InternVL3_5 model (`ollama pull internvl3.5`)
+- [ ] Pull InternVL3_5 model (`ollama pull blaifa/InternVL3_5:4B`)
 - [ ] Test Ollama server and API (basic chat, image inputs)
 - [ ] Create `OllamaClient` class implementing `LLMClient` interface
 - [ ] Add vision support (base64 image handling in messages)
@@ -48,7 +48,7 @@ This document provides a detailed 8-week implementation plan for all improvement
 
 ```bash
 # Test Ollama installation
-ollama run internvl3.5
+ollama run blaifa/InternVL3_5:4B
 
 # Test OllamaClient
 npm test -- ollamaClient.test.ts
